@@ -1,0 +1,14 @@
+# Backend / .NET
+backend/**/bin/
+backend/**/obj/
+*.user
+*.rsuser
+*.suo
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Логи
+*.log
