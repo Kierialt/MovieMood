@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Mood Picker - Filmy</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <h1>🎬 Movie Mood Picker</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="../index.html">Strona Główna</a></li>
+                <li><a href="movies.html" class="active">Filmy</a></li>
+                <li><a href="favorites.html">Ulubione</a></li>
+                <li><a href="auth.html" id="auth-link">Zaloguj się</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="movies-header">
+            <h2 id="mood-title">Filmy</h2>
+            <div class="mood-badge" id="mood-badge"></div>
+            <button class="btn-secondary" id="change-mood-btn">Zmień nastrój</button>
+        </section>
+
+        <section class="movies-container">
+            <div id="loading" class="loading">Ładowanie filmów...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="movies-grid" class="movies-grid"></div>
+            <div class="pagination" id="pagination" style="display: none;">
+                <button id="prev-page" class="btn-pagination">← Poprzednia</button>
+                <span id="page-info">Strona 1 z 1</span>
+                <button id="next-page" class="btn-pagination">Następna →</button>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="../js/main.js"></script>
+</body>
+</html>

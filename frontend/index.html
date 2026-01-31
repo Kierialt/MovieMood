@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Mood Picker - Strona Główna</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">
+                <h1>🎬 Movie Mood Picker</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="active">Strona Główna</a></li>
+                <li><a href="pages/movies.html">Filmy</a></li>
+                <li><a href="pages/favorites.html">Ulubione</a></li>
+                <li><a href="pages/auth.html" id="auth-link">Zaloguj się</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h2>Znajdź idealny film dla swojego nastroju!</h2>
+            <p class="description">
+                Movie Mood Picker to aplikacja, która pomoże Ci znaleźć film idealnie dopasowany do Twojego aktualnego nastroju. 
+                Wybierz swój nastrój, a my pokażemy Ci najlepsze rekomendacje!
+            </p>
+        </section>
+
+        <section class="mood-selection">
+            <h3>Jak się dziś czujesz?</h3>
+            <div class="mood-grid">
+                <article class="mood-card" data-mood="Happy">
+                    <div class="mood-icon">😊</div>
+                    <h4>Happy</h4>
+                    <p>Szukasz czegoś wesołego i lekkiego?</p>
+                </article>
+                <article class="mood-card" data-mood="Sad">
+                    <div class="mood-icon">😢</div>
+                    <h4>Sad</h4>
+                    <p>Potrzebujesz czegoś refleksyjnego?</p>
+                </article>
+                <article class="mood-card" data-mood="Romantic">
+                    <div class="mood-icon">💕</div>
+                    <h4>Romantic</h4>
+                    <p>Chcesz poczuć miłość w powietrzu?</p>
+                </article>
+                <article class="mood-card" data-mood="Scary">
+                    <div class="mood-icon">👻</div>
+                    <h4>Scary</h4>
+                    <p>Gotowy na dreszczyk emocji?</p>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
