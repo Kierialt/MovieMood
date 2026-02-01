@@ -37,15 +37,30 @@ public class TmdbService : ITmdbService
             return null;
         }
 
+        // Sprawdzamy, czy klucz wygląda jak JWT token (zaczyna się od "eyJ")
+        // Jeśli tak, używamy Authorization header, w przeciwnym razie api_key w query string
+        var isAccessToken = !string.IsNullOrEmpty(_options.ApiKey) && 
+                           _options.ApiKey.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase);
+
+        // Budujemy URL z odpowiednim parametrem autoryzacji
+        var authParam = isAccessToken ? "access_token" : "api_key";
         var url = $"{_options.BaseUrl}/discover/movie" +
-                  $"?api_key={_options.ApiKey}" +
+                  $"?{authParam}={_options.ApiKey}" +
                   $"&with_genres={genreId}" +
                   $"&page={page}" +
                   $"&sort_by=popularity.desc";
 
         try
         {
-            var response = await _httpClient.GetAsync(url);
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            
+            // Jeśli to access token, dodajemy też do nagłówka Authorization
+            if (isAccessToken)
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey);
+            }
+
+            var response = await _httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
 
             var json = await response.Content.ReadAsStringAsync();
@@ -53,8 +68,19 @@ public class TmdbService : ITmdbService
 
             return tmdbResponse;
         }
-        catch
+        catch (HttpRequestException ex)
         {
+            // Logowanie błędu dla debugowania
+            Console.WriteLine($"TMDB API Error: {ex.Message}");
+            if (ex.Data.Contains("StatusCode"))
+            {
+                Console.WriteLine($"Status Code: {ex.Data["StatusCode"]}");
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"TMDB Service Error: {ex.Message}");
             return null;
         }
     }

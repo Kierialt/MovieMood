@@ -199,6 +199,9 @@ async function handleRegister(e) {
     }
 }
 
+
+
+
 function clearErrors(prefix) {
     const errorElements = document.querySelectorAll(`[id^="${prefix}"]`);
     errorElements.forEach(el => {
