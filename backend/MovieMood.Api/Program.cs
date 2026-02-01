@@ -21,6 +21,12 @@ builder.Services.Configure<TmdbOptions>(builder.Configuration.GetSection(TmdbOpt
 
 // Auth
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+
+if (string.IsNullOrWhiteSpace(jwt.Key))
+{
+    throw new InvalidOperationException("JWT Key nie może być pusty. Ustaw Jwt:Key w appsettings.json lub appsettings.Development.json");
+}
+
 var keyBytes = Encoding.UTF8.GetBytes(jwt.Key);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

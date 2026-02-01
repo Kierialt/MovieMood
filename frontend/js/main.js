@@ -147,10 +147,33 @@ async function handleLogin(e) {
             body: JSON.stringify({ usernameOrEmail, password })
         });
 
-        setToken(data.token);
+        // Obsługa zarówno camelCase jak i PascalCase (C# może zwracać Token lub token)
+        const token = data.token || data.Token;
+        if (!token) {
+            console.error('Brak tokena w odpowiedzi:', data);
+            showError('login-error', 'Błąd: nie otrzymano tokena z serwera.');
+            return;
+        }
+
+        setToken(token);
         updateAuthLink();
-        window.location.href = '../index.html';
+        
+        // Przekierowanie na stronę główną - używamy bezwzględnej ścieżki
+        const currentPath = window.location.pathname;
+        let redirectPath;
+        
+        if (currentPath.includes('/pages/')) {
+            redirectPath = '../index.html';
+        } else if (currentPath.endsWith('/') || currentPath === '/') {
+            redirectPath = 'index.html';
+        } else {
+            redirectPath = './index.html';
+        }
+        
+        console.log('Przekierowanie do:', redirectPath, 'z:', currentPath);
+        window.location.href = redirectPath;
     } catch (error) {
+        console.error('Błąd logowania:', error);
         showError('login-error', error.message || 'Błąd logowania. Sprawdź dane.');
     }
 }
@@ -191,10 +214,33 @@ async function handleRegister(e) {
             body: JSON.stringify({ userName, email, password })
         });
 
-        setToken(data.token);
+        // Obsługa zarówno camelCase jak i PascalCase (C# może zwracać Token lub token)
+        const token = data.token || data.Token;
+        if (!token) {
+            console.error('Brak tokena w odpowiedzi:', data);
+            showError('register-error', 'Błąd: nie otrzymano tokena z serwera.');
+            return;
+        }
+
+        setToken(token);
         updateAuthLink();
-        window.location.href = '../index.html';
+        
+        // Przekierowanie na stronę główną - używamy bezwzględnej ścieżki
+        const currentPath = window.location.pathname;
+        let redirectPath;
+        
+        if (currentPath.includes('/pages/')) {
+            redirectPath = '../index.html';
+        } else if (currentPath.endsWith('/') || currentPath === '/') {
+            redirectPath = 'index.html';
+        } else {
+            redirectPath = './index.html';
+        }
+        
+        console.log('Przekierowanie do:', redirectPath, 'z:', currentPath);
+        window.location.href = redirectPath;
     } catch (error) {
+        console.error('Błąd rejestracji:', error);
         showError('register-error', error.message || 'Błąd rejestracji. Spróbuj ponownie.');
     }
 }
