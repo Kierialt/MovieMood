@@ -8,9 +8,6 @@ using MovieMood.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// OpenAPI/Swagger уберём пока, чтобы не тянуть лишние зависимости
-
 // DbContext + SQLite
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -25,6 +22,7 @@ builder.Services.Configure<TmdbOptions>(builder.Configuration.GetSection(TmdbOpt
 // Auth
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 var keyBytes = Encoding.UTF8.GetBytes(jwt.Key);
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -40,6 +38,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
+
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 
@@ -51,19 +50,33 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:8080", "http://127.0.0.1:5500", "http://localhost:5500")
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:8080",
+                "http://127.0.0.1:5500",
+                "http://localhost:5500")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
     });
 });
 
-// MVC Controllers
+// Controllers
 builder.Services.AddControllers();
+
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Swagger pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseCors();
 
 app.UseHttpsRedirection();

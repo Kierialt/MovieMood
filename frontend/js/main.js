@@ -51,7 +51,16 @@ function updateAuthLink() {
             };
         } else {
             link.textContent = 'Zaloguj się';
-            link.href = link.href.includes('pages') ? 'auth.html' : 'pages/auth.html';
+            // Sprawdzamy aktualną ścieżkę, aby poprawnie ustawić href
+            const currentPath = window.location.pathname;
+            const isInPagesFolder = currentPath.includes('/pages/') || 
+                                   currentPath.endsWith('/pages') ||
+                                   currentPath.includes('pages.html') ||
+                                   currentPath.includes('movies.html') ||
+                                   currentPath.includes('favorites.html') ||
+                                   currentPath.includes('auth.html');
+            // Zawsze ustawiamy poprawny href na podstawie aktualnej lokalizacji
+            link.href = isInPagesFolder ? 'auth.html' : 'pages/auth.html';
             link.onclick = null;
         }
     });
@@ -62,6 +71,7 @@ function logout() {
     removeToken();
     updateAuthLink();
     if (window.location.pathname.includes('favorites.html')) {
+        // Jesteśmy w folderze pages, więc auth.html jest w tym samym folderze
         window.location.href = 'auth.html';
     } else {
         window.location.reload();
@@ -134,7 +144,7 @@ async function handleLogin(e) {
     try {
         const data = await apiRequest('/auth/login', {
             method: 'POST',
-            body: JSON.stringify({ userNameOrEmail, password })
+            body: JSON.stringify({ usernameOrEmail, password })
         });
 
         setToken(data.token);

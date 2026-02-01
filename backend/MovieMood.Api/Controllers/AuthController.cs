@@ -34,7 +34,7 @@ public class AuthController : ControllerBase
         var normalizedUserName = req.UserName.Trim();
 
         var exists = await _db.Users.AnyAsync(u =>
-            u.Email.ToLower() == normalizedEmail ||
+            u.Email != null && u.Email.ToLower() == normalizedEmail ||
             u.UserName == normalizedUserName);
 
         if (exists)
