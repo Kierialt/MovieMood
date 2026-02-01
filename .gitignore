@@ -5,6 +5,8 @@ backend/**/obj/
 *.rsuser
 *.suo
 appsettings.Development.json
+backend/**/appsettings.Development.json
+**/appsettings.Development.json
 
 
 # OS / IDE
