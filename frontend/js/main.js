@@ -1,6 +1,10 @@
 // API Configuration
 const API_BASE_URL = 'http://localhost:5272/api';
 
+// Test - sprawdzenie czy skrypt się ładuje
+console.log('✅ Skrypt main.js załadowany!');
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // Utility functions
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => localStorage.setItem('token', token);
@@ -20,17 +24,24 @@ async function apiRequest(endpoint, options = {}) {
     }
 
     try {
+        console.log('Wysyłanie żądania do:', `${API_BASE_URL}${endpoint}`);
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers
         });
 
-        const data = await response.json().catch(() => ({}));
+        console.log('Odpowiedź status:', response.status, response.statusText);
+        const data = await response.json().catch((err) => {
+            console.error('Błąd parsowania JSON:', err);
+            return {};
+        });
 
         if (!response.ok) {
-            throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            console.error('Błąd API:', data);
+            throw new Error(data.message || data.title || `HTTP error! status: ${response.status}`);
         }
 
+        console.log('Otrzymane dane:', data);
         return data;
     } catch (error) {
         console.error('API request failed:', error);
@@ -80,6 +91,9 @@ function logout() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM załadowany. Aktualna ścieżka:', window.location.pathname);
+    console.log('URL:', window.location.href);
+    
     updateAuthLink();
 
     // Handle mood selection on index page
@@ -120,11 +134,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Handle movies page
-    if (window.location.pathname.includes('movies.html')) {
+    const pathname = window.location.pathname;
+    const isMoviesPage = pathname.includes('movies.html') || pathname.includes('/pages/movies') || pathname.endsWith('/movies');
+    console.log('Sprawdzanie ścieżki dla movies:', pathname, 'jest stroną movies?', isMoviesPage);
+    
+    if (isMoviesPage) {
+        console.log('Wywoływanie loadMovies()...');
         loadMovies();
         document.getElementById('change-mood-btn')?.addEventListener('click', () => {
             window.location.href = '../index.html';
         });
+    } else {
+        console.log('Nie jesteś na stronie movies');
     }
 
     // Handle favorites page
@@ -266,9 +287,11 @@ function showError(elementId, message) {
 
 // Movies page functions
 async function loadMovies() {
+    console.log('loadMovies() wywołana!');
     const urlParams = new URLSearchParams(window.location.search);
     const mood = urlParams.get('mood') || 'Happy';
     const page = parseInt(urlParams.get('page')) || 1;
+    console.log('Parametry URL - mood:', mood, 'page:', page);
 
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
@@ -295,11 +318,14 @@ async function loadMovies() {
     }
 
     try {
+        console.log('Ładowanie filmów dla nastroju:', mood, 'strona:', page);
         const data = await apiRequest(`/movies?mood=${mood}&page=${page}`);
+        console.log('Otrzymane dane z API:', data);
 
         loadingEl.style.display = 'none';
 
         if (data.results && data.results.length > 0) {
+            console.log('Znaleziono', data.results.length, 'filmów');
             renderMovies(data.results, moviesGrid);
             
             if (data.totalPages > 1) {
@@ -307,11 +333,13 @@ async function loadMovies() {
                 pagination.style.display = 'flex';
             }
         } else {
+            console.warn('Brak wyników w odpowiedzi:', data);
             moviesGrid.innerHTML = '<p class="empty-state">Brak filmów dla tego nastroju.</p>';
         }
     } catch (error) {
+        console.error('Błąd podczas ładowania filmów:', error);
         loadingEl.style.display = 'none';
-        errorEl.textContent = error.message || 'Błąd podczas ładowania filmów.';
+        errorEl.textContent = error.message || 'Błąd podczas ładowania filmów. Sprawdź konsolę przeglądarki.';
         errorEl.style.display = 'block';
     }
 }
