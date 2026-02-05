@@ -300,10 +300,15 @@ async function loadMovies() {
     const moodTitle = document.getElementById('mood-title');
     const moodBadge = document.getElementById('mood-badge');
 
-    loadingEl.style.display = 'block';
-    errorEl.style.display = 'none';
-    moviesGrid.innerHTML = '';
-    pagination.style.display = 'none';
+    console.log('Elementy DOM:', { loadingEl, errorEl, moviesGrid, pagination });
+
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errorEl) errorEl.style.display = 'none';
+    if (moviesGrid) {
+        moviesGrid.innerHTML = '';
+        moviesGrid.style.display = 'grid'; // Upewnij się, że grid jest widoczny
+    }
+    if (pagination) pagination.style.display = 'none';
 
     const moodNames = {
         'Happy': '😊 Happy',
@@ -326,7 +331,37 @@ async function loadMovies() {
 
         if (data.results && data.results.length > 0) {
             console.log('Znaleziono', data.results.length, 'filmów');
+            console.log('Przykładowy film:', data.results[0]);
+            console.log('Element moviesGrid:', moviesGrid);
+            
+            // Ukryj loading przed renderowaniem
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+                console.log('Loading ukryty. Display:', window.getComputedStyle(loadingEl).display);
+            }
+            
+            // Pokaż grid
+            if (moviesGrid) {
+                moviesGrid.style.display = 'grid';
+            }
+            
             renderMovies(data.results, moviesGrid);
+            console.log('Filmy zrenderowane. Liczba elementów w grid:', moviesGrid.children.length);
+            
+            // Sprawdź widoczność elementów
+            if (moviesGrid) {
+                const computedStyle = window.getComputedStyle(moviesGrid);
+                console.log('Grid CSS - display:', computedStyle.display, 'visibility:', computedStyle.visibility, 'opacity:', computedStyle.opacity);
+                console.log('Grid height:', computedStyle.height, 'width:', computedStyle.width);
+                
+                // Sprawdź pierwszy element filmu
+                if (moviesGrid.children.length > 0) {
+                    const firstMovie = moviesGrid.children[0];
+                    const movieStyle = window.getComputedStyle(firstMovie);
+                    console.log('Pierwszy film - display:', movieStyle.display, 'visibility:', movieStyle.visibility, 'height:', movieStyle.height);
+                    console.log('Pierwszy film HTML:', firstMovie.outerHTML.substring(0, 200));
+                }
+            }
             
             if (data.totalPages > 1) {
                 renderPagination(data.page, data.totalPages, mood);
@@ -334,7 +369,13 @@ async function loadMovies() {
             }
         } else {
             console.warn('Brak wyników w odpowiedzi:', data);
-            moviesGrid.innerHTML = '<p class="empty-state">Brak filmów dla tego nastroju.</p>';
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+            if (moviesGrid) {
+                moviesGrid.innerHTML = '<p class="empty-state">Brak filmów dla tego nastroju.</p>';
+                moviesGrid.style.display = 'block';
+            }
         }
     } catch (error) {
         console.error('Błąd podczas ładowania filmów:', error);
@@ -345,28 +386,45 @@ async function loadMovies() {
 }
 
 function renderMovies(movies, container) {
+    console.log('renderMovies() wywołana z', movies.length, 'filmami');
+    console.log('Container:', container);
+    
+    if (!container) {
+        console.error('Container nie istnieje!');
+        return;
+    }
+    
     container.innerHTML = '';
 
-    movies.forEach(movie => {
+    movies.forEach((movie, index) => {
+        console.log(`Renderowanie filmu ${index + 1}:`, movie);
+        
+        // Obsługa zarówno camelCase jak i PascalCase (C# może zwracać różne formaty)
+        const movieId = movie.movieId || movie.MovieId || '';
+        const title = movie.title || movie.Title || 'Bez tytułu';
+        const overview = movie.overview || movie.Overview || '';
+        const posterPath = movie.posterPath || movie.PosterPath || '';
+        const rating = movie.rating || movie.Rating || 0;
+        
         const movieCard = document.createElement('article');
         movieCard.className = 'movie-card';
         movieCard.innerHTML = `
-            ${movie.posterPath 
-                ? `<img src="https://image.tmdb.org/t/p/w500${movie.posterPath}" alt="${movie.title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+            ${posterPath 
+                ? `<img src="https://image.tmdb.org/t/p/w500${posterPath}" alt="${title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
                 : ''
             }
-            <div class="movie-poster-placeholder" style="display: ${movie.posterPath ? 'none' : 'flex'}">
+            <div class="movie-poster-placeholder" style="display: ${posterPath ? 'none' : 'flex'}">
                 🎬
             </div>
             <div class="movie-info">
-                <h3 class="movie-title">${movie.title}</h3>
-                <p class="movie-overview">${movie.overview || 'Brak opisu'}</p>
+                <h3 class="movie-title">${title}</h3>
+                <p class="movie-overview">${overview || 'Brak opisu'}</p>
                 <div class="movie-rating">
                     <span class="star">⭐</span>
-                    <span>${movie.rating ? movie.rating.toFixed(1) : 'N/A'}</span>
+                    <span>${rating ? rating.toFixed(1) : 'N/A'}</span>
                 </div>
                 <div class="movie-actions">
-                    <button class="btn-favorite" data-movie-id="${movie.movieId}" data-title="${movie.title}" data-poster="${movie.posterPath || ''}" data-overview="${movie.overview || ''}" data-rating="${movie.rating || 0}">
+                    <button class="btn-favorite" data-movie-id="${movieId}" data-title="${title}" data-poster="${posterPath || ''}" data-overview="${overview || ''}" data-rating="${rating || 0}">
                         <span>❤️</span> Dodaj do ulubionych
                     </button>
                 </div>
@@ -374,7 +432,7 @@ function renderMovies(movies, container) {
         `;
 
         const favoriteBtn = movieCard.querySelector('.btn-favorite');
-        favoriteBtn.addEventListener('click', () => handleAddFavorite(movie.movieId, movie.title, movie.posterPath, movie.overview, movie.rating, favoriteBtn));
+        favoriteBtn.addEventListener('click', () => handleAddFavorite(movieId, title, posterPath, overview, rating, favoriteBtn));
 
         container.appendChild(movieCard);
     });
