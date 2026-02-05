@@ -190,7 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Handle favorites page
-    if (window.location.pathname.includes('favorites.html')) {
+    const favoritesPathname = window.location.pathname;
+    const isFavoritesPage = favoritesPathname.includes('favorites.html') || favoritesPathname.includes('/pages/favorites') || favoritesPathname.endsWith('/favorites');
+    console.log('Sprawdzanie ścieżki dla favorites:', favoritesPathname, 'jest stroną favorites?', isFavoritesPage);
+    
+    if (isFavoritesPage) {
+        console.log('Wywoływanie loadFavorites()...');
         loadFavorites();
     }
 });
@@ -648,38 +653,53 @@ async function handleAddFavorite(movieId, title, posterPath, overview, rating, b
 
 // Favorites page functions
 async function loadFavorites() {
+    console.log('loadFavorites() wywołana!');
     const authRequired = document.getElementById('auth-required');
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
     const favoritesGrid = document.getElementById('favorites-grid');
     const emptyState = document.getElementById('empty-favorites');
 
+    console.log('Elementy DOM favorites:', { authRequired, loadingEl, errorEl, favoritesGrid, emptyState });
+
     if (!isAuthenticated()) {
-        authRequired.style.display = 'block';
-        loadingEl.style.display = 'none';
+        console.log('Użytkownik nie jest zalogowany - pokazuję komunikat');
+        if (authRequired) authRequired.style.display = 'block';
+        if (loadingEl) loadingEl.style.display = 'none';
         return;
     }
 
-    authRequired.style.display = 'none';
-    loadingEl.style.display = 'block';
-    errorEl.style.display = 'none';
-    favoritesGrid.innerHTML = '';
-    emptyState.style.display = 'none';
+    console.log('Użytkownik jest zalogowany - ładowanie ulubionych');
+    if (authRequired) authRequired.style.display = 'none';
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errorEl) errorEl.style.display = 'none';
+    if (favoritesGrid) {
+        favoritesGrid.innerHTML = '';
+        favoritesGrid.style.display = 'grid';
+    }
+    if (emptyState) emptyState.style.display = 'none';
 
     try {
+        console.log('Wysyłanie żądania do /favorites');
         const favorites = await apiRequest('/favorites');
+        console.log('Otrzymane ulubione:', favorites);
 
-        loadingEl.style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
 
-        if (favorites && favorites.length > 0) {
+        if (favorites && Array.isArray(favorites) && favorites.length > 0) {
+            console.log('Znaleziono', favorites.length, 'ulubionych filmów');
             renderFavorites(favorites, favoritesGrid);
         } else {
-            emptyState.style.display = 'block';
+            console.log('Brak ulubionych filmów');
+            if (emptyState) emptyState.style.display = 'block';
         }
     } catch (error) {
-        loadingEl.style.display = 'none';
-        errorEl.textContent = error.message || 'Błąd podczas ładowania ulubionych.';
-        errorEl.style.display = 'block';
+        console.error('Błąd podczas ładowania ulubionych:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl) {
+            errorEl.textContent = error.message || 'Błąd podczas ładowania ulubionych. Sprawdź konsolę przeglądarki.';
+            errorEl.style.display = 'block';
+        }
     }
 }
 
