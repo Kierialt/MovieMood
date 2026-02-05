@@ -98,10 +98,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle mood selection on index page
     const moodCards = document.querySelectorAll('.mood-card');
-    moodCards.forEach(card => {
-        card.addEventListener('click', () => {
-            const mood = card.dataset.mood;
-            window.location.href = `pages/movies.html?mood=${mood}`;
+    console.log('Znaleziono kart nastroju:', moodCards.length);
+    
+    moodCards.forEach((card, index) => {
+        const mood = card.dataset.mood;
+        console.log(`Karta ${index + 1}: nastrój =`, mood);
+        
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const selectedMood = card.dataset.mood;
+            console.log('Kliknięto kartę nastroju:', selectedMood);
+            
+            // Sprawdź, czy jesteś na stronie głównej czy w folderze pages
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/pages/')) {
+                basePath = './';
+            } else if (currentPath.endsWith('/') || currentPath === '/') {
+                basePath = 'pages/';
+            } else {
+                basePath = 'pages/';
+            }
+            
+            // Sprawdź, czy nastrój się zmienił
+            const previousMood = localStorage.getItem('selectedMood');
+            localStorage.setItem('selectedMood', selectedMood);
+            
+            // Jeśli nastrój się zmienił, resetuj stronę do 1
+            if (previousMood && previousMood !== selectedMood) {
+                console.log('Nastrój się zmienił z', previousMood, 'na', selectedMood, '- resetowanie strony do 1');
+                localStorage.removeItem('currentPage');
+            }
+            
+            console.log('Zapisano nastrój w localStorage:', selectedMood);
+            
+            // Zawsze zaczynaj od strony 1 przy wyborze nastroju
+            const url = `${basePath}movies.html?mood=${encodeURIComponent(selectedMood)}&page=1`;
+            console.log('Aktualna ścieżka:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Pełny URL przekierowania:', url);
+            
+            // Użyj window.location.assign zamiast href, aby zachować parametry
+            window.location.assign(url);
         });
     });
 
@@ -289,9 +330,49 @@ function showError(elementId, message) {
 async function loadMovies() {
     console.log('loadMovies() wywołana!');
     const urlParams = new URLSearchParams(window.location.search);
-    const mood = urlParams.get('mood') || 'Happy';
-    const page = parseInt(urlParams.get('page')) || 1;
-    console.log('Parametry URL - mood:', mood, 'page:', page);
+    const moodFromUrl = urlParams.get('mood');
+    const moodFromStorage = localStorage.getItem('selectedMood');
+    
+    // Użyj nastrój z URL, jeśli istnieje, w przeciwnym razie z localStorage, w przeciwnym razie domyślny
+    const selectedMood = moodFromUrl || moodFromStorage || 'Happy';
+    
+    // Sprawdź, czy nastrój się zmienił - porównaj z poprzednim nastrojem w localStorage
+    const previousMood = moodFromStorage;
+    const moodChanged = previousMood && previousMood !== selectedMood;
+    
+    console.log('Sprawdzanie zmiany nastroju - poprzedni:', previousMood, 'aktualny:', selectedMood, 'zmieniony?', moodChanged);
+    
+    // Pobierz stronę z URL
+    const pageFromUrl = urlParams.get('page');
+    let page;
+    
+    if (moodChanged) {
+        // Jeśli nastrój się zmienił, zawsze zacznij od strony 1
+        console.log('Wykryto zmianę nastroju z', previousMood, 'na', selectedMood, '- resetowanie strony do 1');
+        localStorage.removeItem('currentPage');
+        page = 1;
+        // Zaktualizuj URL, aby zawierał page=1
+        const newUrl = `${window.location.pathname}?mood=${encodeURIComponent(selectedMood)}&page=1`;
+        window.history.replaceState({}, '', newUrl);
+    } else if (!pageFromUrl) {
+        // Jeśli nie ma strony w URL i nastrój się nie zmienił, użyj z localStorage lub 1
+        const pageFromStorage = localStorage.getItem('currentPage');
+        page = parseInt(pageFromStorage) || 1;
+    } else {
+        // Użyj strony z URL (dla tego samego nastroju)
+        page = parseInt(pageFromUrl) || 1;
+    }
+    
+    console.log('Parametry - mood:', selectedMood, 'page:', page, 'moodChanged:', moodChanged);
+    
+    if (!moodFromUrl && moodFromStorage && !moodChanged) {
+        console.log('Używam nastroju z localStorage:', moodFromStorage);
+        // Opcjonalnie: zaktualizuj URL bez przeładowania strony
+        const newUrl = `${window.location.pathname}?mood=${encodeURIComponent(moodFromStorage)}&page=${page}`;
+        window.history.replaceState({}, '', newUrl);
+    } else if (!moodFromUrl && !moodFromStorage) {
+        console.warn('Brak parametru mood w URL i localStorage, używam domyślnego: Happy');
+    }
 
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
@@ -317,14 +398,16 @@ async function loadMovies() {
         'Scary': '👻 Scary'
     };
 
-    moodTitle.textContent = `Filmy dla nastroju: ${moodNames[mood] || mood}`;
+    if (moodTitle) {
+        moodTitle.textContent = `Filmy dla nastroju: ${moodNames[selectedMood] || selectedMood}`;
+    }
     if (moodBadge) {
-        moodBadge.textContent = moodNames[mood] || mood;
+        moodBadge.textContent = moodNames[selectedMood] || selectedMood;
     }
 
     try {
-        console.log('Ładowanie filmów dla nastroju:', mood, 'strona:', page);
-        const data = await apiRequest(`/movies?mood=${mood}&page=${page}`);
+        console.log('Ładowanie filmów dla nastroju:', selectedMood, 'strona:', page);
+        const data = await apiRequest(`/movies?mood=${selectedMood}&page=${page}`);
         console.log('Otrzymane dane z API:', data);
 
         loadingEl.style.display = 'none';
@@ -364,7 +447,7 @@ async function loadMovies() {
             }
             
             if (data.totalPages > 1) {
-                renderPagination(data.page, data.totalPages, mood);
+                renderPagination(data.page, data.totalPages, selectedMood);
                 pagination.style.display = 'flex';
             }
         } else {
@@ -439,22 +522,91 @@ function renderMovies(movies, container) {
 }
 
 function renderPagination(currentPage, totalPages, mood) {
+    console.log('renderPagination() wywołana:', { currentPage, totalPages, mood });
+    
     const prevBtn = document.getElementById('prev-page');
     const nextBtn = document.getElementById('next-page');
     const pageInfo = document.getElementById('page-info');
+
+    if (!pageInfo || !prevBtn || !nextBtn) {
+        console.error('Elementy paginacji nie znalezione!', { pageInfo, prevBtn, nextBtn });
+        return;
+    }
 
     pageInfo.textContent = `Strona ${currentPage} z ${totalPages}`;
 
     prevBtn.disabled = currentPage === 1;
     nextBtn.disabled = currentPage === totalPages;
+    
+    console.log('Przyciski paginacji - prev disabled:', prevBtn.disabled, 'next disabled:', nextBtn.disabled);
 
-    prevBtn.onclick = () => {
-        window.location.href = `movies.html?mood=${mood}&page=${currentPage - 1}`;
-    };
+    // Usuń stare event listenery - zastąp przyciski nowymi
+    const paginationContainer = prevBtn.parentElement;
+    const oldPrevBtn = prevBtn;
+    const oldNextBtn = nextBtn;
+    
+    // Stwórz nowe przyciski
+    const newPrevBtn = document.createElement('button');
+    newPrevBtn.id = 'prev-page';
+    newPrevBtn.className = 'btn-pagination';
+    newPrevBtn.textContent = '← Poprzednia';
+    newPrevBtn.disabled = currentPage === 1;
+    
+    const newNextBtn = document.createElement('button');
+    newNextBtn.id = 'next-page';
+    newNextBtn.className = 'btn-pagination';
+    newNextBtn.textContent = 'Następna →';
+    newNextBtn.disabled = currentPage === totalPages;
+    
+    // Zastąp stare przyciski nowymi
+    paginationContainer.replaceChild(newPrevBtn, oldPrevBtn);
+    paginationContainer.replaceChild(newNextBtn, oldNextBtn);
 
-    nextBtn.onclick = () => {
-        window.location.href = `movies.html?mood=${mood}&page=${currentPage + 1}`;
-    };
+    // Określ ścieżkę - jeśli jesteśmy w folderze pages, użyj względnej ścieżki
+    const currentPath = window.location.pathname;
+    const basePath = currentPath.includes('/pages/') ? './' : 'pages/';
+    const moviesPath = `${basePath}movies.html`;
+    
+    console.log('Ścieżka paginacji:', moviesPath);
+
+    // Dodaj event listenery do nowych przycisków
+    newPrevBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Kliknięto "Poprzednia"');
+        if (currentPage > 1) {
+            const newPage = currentPage - 1;
+            console.log('Przechodzenie do strony:', newPage);
+            // Zapisz nastrój i stronę w localStorage
+            localStorage.setItem('selectedMood', mood);
+            localStorage.setItem('currentPage', newPage.toString());
+            const newUrl = `${moviesPath}?mood=${encodeURIComponent(mood)}&page=${newPage}`;
+            console.log('Nowy URL:', newUrl);
+            window.location.href = newUrl;
+        } else {
+            console.log('Jesteś już na pierwszej stronie');
+        }
+    });
+
+    newNextBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Kliknięto "Następna"');
+        if (currentPage < totalPages) {
+            const newPage = currentPage + 1;
+            console.log('Przechodzenie do strony:', newPage);
+            // Zapisz nastrój i stronę w localStorage
+            localStorage.setItem('selectedMood', mood);
+            localStorage.setItem('currentPage', newPage.toString());
+            const newUrl = `${moviesPath}?mood=${encodeURIComponent(mood)}&page=${newPage}`;
+            console.log('Nowy URL:', newUrl);
+            window.location.href = newUrl;
+        } else {
+            console.log('Jesteś już na ostatniej stronie');
+        }
+    });
+    
+    console.log('Event listenery paginacji dodane do nowych przycisków');
 }
 
 async function handleAddFavorite(movieId, title, posterPath, overview, rating, button) {
