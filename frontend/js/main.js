@@ -1,6 +1,10 @@
 // API Configuration
 const API_BASE_URL = 'http://localhost:5272/api';
 
+// Test - sprawdzenie czy skrypt się ładuje
+console.log('✅ Skrypt main.js załadowany!');
+console.log('API_BASE_URL:', API_BASE_URL);
+
 // Utility functions
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => localStorage.setItem('token', token);
@@ -20,17 +24,24 @@ async function apiRequest(endpoint, options = {}) {
     }
 
     try {
+        console.log('Wysyłanie żądania do:', `${API_BASE_URL}${endpoint}`);
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             ...options,
             headers
         });
 
-        const data = await response.json().catch(() => ({}));
+        console.log('Odpowiedź status:', response.status, response.statusText);
+        const data = await response.json().catch((err) => {
+            console.error('Błąd parsowania JSON:', err);
+            return {};
+        });
 
         if (!response.ok) {
-            throw new Error(data.message || `HTTP error! status: ${response.status}`);
+            console.error('Błąd API:', data);
+            throw new Error(data.message || data.title || `HTTP error! status: ${response.status}`);
         }
 
+        console.log('Otrzymane dane:', data);
         return data;
     } catch (error) {
         console.error('API request failed:', error);
@@ -80,14 +91,58 @@ function logout() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM załadowany. Aktualna ścieżka:', window.location.pathname);
+    console.log('URL:', window.location.href);
+    
     updateAuthLink();
 
     // Handle mood selection on index page
     const moodCards = document.querySelectorAll('.mood-card');
-    moodCards.forEach(card => {
-        card.addEventListener('click', () => {
-            const mood = card.dataset.mood;
-            window.location.href = `pages/movies.html?mood=${mood}`;
+    console.log('Znaleziono kart nastroju:', moodCards.length);
+    
+    moodCards.forEach((card, index) => {
+        const mood = card.dataset.mood;
+        console.log(`Karta ${index + 1}: nastrój =`, mood);
+        
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const selectedMood = card.dataset.mood;
+            console.log('Kliknięto kartę nastroju:', selectedMood);
+            
+            // Sprawdź, czy jesteś na stronie głównej czy w folderze pages
+            const currentPath = window.location.pathname;
+            let basePath;
+            
+            if (currentPath.includes('/pages/')) {
+                basePath = './';
+            } else if (currentPath.endsWith('/') || currentPath === '/') {
+                basePath = 'pages/';
+            } else {
+                basePath = 'pages/';
+            }
+            
+            // Sprawdź, czy nastrój się zmienił
+            const previousMood = localStorage.getItem('selectedMood');
+            localStorage.setItem('selectedMood', selectedMood);
+            
+            // Jeśli nastrój się zmienił, resetuj stronę do 1
+            if (previousMood && previousMood !== selectedMood) {
+                console.log('Nastrój się zmienił z', previousMood, 'na', selectedMood, '- resetowanie strony do 1');
+                localStorage.removeItem('currentPage');
+            }
+            
+            console.log('Zapisano nastrój w localStorage:', selectedMood);
+            
+            // Zawsze zaczynaj od strony 1 przy wyborze nastroju
+            const url = `${basePath}movies.html?mood=${encodeURIComponent(selectedMood)}&page=1`;
+            console.log('Aktualna ścieżka:', currentPath);
+            console.log('Base path:', basePath);
+            console.log('Pełny URL przekierowania:', url);
+            
+            // Użyj window.location.assign zamiast href, aby zachować parametry
+            window.location.assign(url);
         });
     });
 
@@ -120,15 +175,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Handle movies page
-    if (window.location.pathname.includes('movies.html')) {
+    const pathname = window.location.pathname;
+    const isMoviesPage = pathname.includes('movies.html') || pathname.includes('/pages/movies') || pathname.endsWith('/movies');
+    console.log('Sprawdzanie ścieżki dla movies:', pathname, 'jest stroną movies?', isMoviesPage);
+    
+    if (isMoviesPage) {
+        console.log('Wywoływanie loadMovies()...');
         loadMovies();
         document.getElementById('change-mood-btn')?.addEventListener('click', () => {
             window.location.href = '../index.html';
         });
+    } else {
+        console.log('Nie jesteś na stronie movies');
     }
 
     // Handle favorites page
-    if (window.location.pathname.includes('favorites.html')) {
+    const favoritesPathname = window.location.pathname;
+    const isFavoritesPage = favoritesPathname.includes('favorites.html') || favoritesPathname.includes('/pages/favorites') || favoritesPathname.endsWith('/favorites');
+    console.log('Sprawdzanie ścieżki dla favorites:', favoritesPathname, 'jest stroną favorites?', isFavoritesPage);
+    
+    if (isFavoritesPage) {
+        console.log('Wywoływanie loadFavorites()...');
         loadFavorites();
     }
 });
@@ -266,9 +333,51 @@ function showError(elementId, message) {
 
 // Movies page functions
 async function loadMovies() {
+    console.log('loadMovies() wywołana!');
     const urlParams = new URLSearchParams(window.location.search);
-    const mood = urlParams.get('mood') || 'Happy';
-    const page = parseInt(urlParams.get('page')) || 1;
+    const moodFromUrl = urlParams.get('mood');
+    const moodFromStorage = localStorage.getItem('selectedMood');
+    
+    // Użyj nastrój z URL, jeśli istnieje, w przeciwnym razie z localStorage, w przeciwnym razie domyślny
+    const selectedMood = moodFromUrl || moodFromStorage || 'Happy';
+    
+    // Sprawdź, czy nastrój się zmienił - porównaj z poprzednim nastrojem w localStorage
+    const previousMood = moodFromStorage;
+    const moodChanged = previousMood && previousMood !== selectedMood;
+    
+    console.log('Sprawdzanie zmiany nastroju - poprzedni:', previousMood, 'aktualny:', selectedMood, 'zmieniony?', moodChanged);
+    
+    // Pobierz stronę z URL
+    const pageFromUrl = urlParams.get('page');
+    let page;
+    
+    if (moodChanged) {
+        // Jeśli nastrój się zmienił, zawsze zacznij od strony 1
+        console.log('Wykryto zmianę nastroju z', previousMood, 'na', selectedMood, '- resetowanie strony do 1');
+        localStorage.removeItem('currentPage');
+        page = 1;
+        // Zaktualizuj URL, aby zawierał page=1
+        const newUrl = `${window.location.pathname}?mood=${encodeURIComponent(selectedMood)}&page=1`;
+        window.history.replaceState({}, '', newUrl);
+    } else if (!pageFromUrl) {
+        // Jeśli nie ma strony w URL i nastrój się nie zmienił, użyj z localStorage lub 1
+        const pageFromStorage = localStorage.getItem('currentPage');
+        page = parseInt(pageFromStorage) || 1;
+    } else {
+        // Użyj strony z URL (dla tego samego nastroju)
+        page = parseInt(pageFromUrl) || 1;
+    }
+    
+    console.log('Parametry - mood:', selectedMood, 'page:', page, 'moodChanged:', moodChanged);
+    
+    if (!moodFromUrl && moodFromStorage && !moodChanged) {
+        console.log('Używam nastroju z localStorage:', moodFromStorage);
+        // Opcjonalnie: zaktualizuj URL bez przeładowania strony
+        const newUrl = `${window.location.pathname}?mood=${encodeURIComponent(moodFromStorage)}&page=${page}`;
+        window.history.replaceState({}, '', newUrl);
+    } else if (!moodFromUrl && !moodFromStorage) {
+        console.warn('Brak parametru mood w URL i localStorage, używam domyślnego: Happy');
+    }
 
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
@@ -277,10 +386,15 @@ async function loadMovies() {
     const moodTitle = document.getElementById('mood-title');
     const moodBadge = document.getElementById('mood-badge');
 
-    loadingEl.style.display = 'block';
-    errorEl.style.display = 'none';
-    moviesGrid.innerHTML = '';
-    pagination.style.display = 'none';
+    console.log('Elementy DOM:', { loadingEl, errorEl, moviesGrid, pagination });
+
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errorEl) errorEl.style.display = 'none';
+    if (moviesGrid) {
+        moviesGrid.innerHTML = '';
+        moviesGrid.style.display = 'grid'; // Upewnij się, że grid jest widoczny
+    }
+    if (pagination) pagination.style.display = 'none';
 
     const moodNames = {
         'Happy': '😊 Happy',
@@ -289,56 +403,116 @@ async function loadMovies() {
         'Scary': '👻 Scary'
     };
 
-    moodTitle.textContent = `Filmy dla nastroju: ${moodNames[mood] || mood}`;
+    if (moodTitle) {
+        moodTitle.textContent = `Filmy dla nastroju: ${moodNames[selectedMood] || selectedMood}`;
+    }
     if (moodBadge) {
-        moodBadge.textContent = moodNames[mood] || mood;
+        moodBadge.textContent = moodNames[selectedMood] || selectedMood;
     }
 
     try {
-        const data = await apiRequest(`/movies?mood=${mood}&page=${page}`);
+        console.log('Ładowanie filmów dla nastroju:', selectedMood, 'strona:', page);
+        const data = await apiRequest(`/movies?mood=${selectedMood}&page=${page}`);
+        console.log('Otrzymane dane z API:', data);
 
         loadingEl.style.display = 'none';
 
         if (data.results && data.results.length > 0) {
+            console.log('Znaleziono', data.results.length, 'filmów');
+            console.log('Przykładowy film:', data.results[0]);
+            console.log('Element moviesGrid:', moviesGrid);
+            
+            // Ukryj loading przed renderowaniem
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+                console.log('Loading ukryty. Display:', window.getComputedStyle(loadingEl).display);
+            }
+            
+            // Pokaż grid
+            if (moviesGrid) {
+                moviesGrid.style.display = 'grid';
+            }
+            
             renderMovies(data.results, moviesGrid);
+            console.log('Filmy zrenderowane. Liczba elementów w grid:', moviesGrid.children.length);
+            
+            // Sprawdź widoczność elementów
+            if (moviesGrid) {
+                const computedStyle = window.getComputedStyle(moviesGrid);
+                console.log('Grid CSS - display:', computedStyle.display, 'visibility:', computedStyle.visibility, 'opacity:', computedStyle.opacity);
+                console.log('Grid height:', computedStyle.height, 'width:', computedStyle.width);
+                
+                // Sprawdź pierwszy element filmu
+                if (moviesGrid.children.length > 0) {
+                    const firstMovie = moviesGrid.children[0];
+                    const movieStyle = window.getComputedStyle(firstMovie);
+                    console.log('Pierwszy film - display:', movieStyle.display, 'visibility:', movieStyle.visibility, 'height:', movieStyle.height);
+                    console.log('Pierwszy film HTML:', firstMovie.outerHTML.substring(0, 200));
+                }
+            }
             
             if (data.totalPages > 1) {
-                renderPagination(data.page, data.totalPages, mood);
+                renderPagination(data.page, data.totalPages, selectedMood);
                 pagination.style.display = 'flex';
             }
         } else {
-            moviesGrid.innerHTML = '<p class="empty-state">Brak filmów dla tego nastroju.</p>';
+            console.warn('Brak wyników w odpowiedzi:', data);
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+            if (moviesGrid) {
+                moviesGrid.innerHTML = '<p class="empty-state">Brak filmów dla tego nastroju.</p>';
+                moviesGrid.style.display = 'block';
+            }
         }
     } catch (error) {
+        console.error('Błąd podczas ładowania filmów:', error);
         loadingEl.style.display = 'none';
-        errorEl.textContent = error.message || 'Błąd podczas ładowania filmów.';
+        errorEl.textContent = error.message || 'Błąd podczas ładowania filmów. Sprawdź konsolę przeglądarki.';
         errorEl.style.display = 'block';
     }
 }
 
 function renderMovies(movies, container) {
+    console.log('renderMovies() wywołana z', movies.length, 'filmami');
+    console.log('Container:', container);
+    
+    if (!container) {
+        console.error('Container nie istnieje!');
+        return;
+    }
+    
     container.innerHTML = '';
 
-    movies.forEach(movie => {
+    movies.forEach((movie, index) => {
+        console.log(`Renderowanie filmu ${index + 1}:`, movie);
+        
+        // Obsługa zarówno camelCase jak i PascalCase (C# może zwracać różne formaty)
+        const movieId = movie.movieId || movie.MovieId || '';
+        const title = movie.title || movie.Title || 'Bez tytułu';
+        const overview = movie.overview || movie.Overview || '';
+        const posterPath = movie.posterPath || movie.PosterPath || '';
+        const rating = movie.rating || movie.Rating || 0;
+        
         const movieCard = document.createElement('article');
         movieCard.className = 'movie-card';
         movieCard.innerHTML = `
-            ${movie.posterPath 
-                ? `<img src="https://image.tmdb.org/t/p/w500${movie.posterPath}" alt="${movie.title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+            ${posterPath 
+                ? `<img src="https://image.tmdb.org/t/p/w500${posterPath}" alt="${title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
                 : ''
             }
-            <div class="movie-poster-placeholder" style="display: ${movie.posterPath ? 'none' : 'flex'}">
+            <div class="movie-poster-placeholder" style="display: ${posterPath ? 'none' : 'flex'}">
                 🎬
             </div>
             <div class="movie-info">
-                <h3 class="movie-title">${movie.title}</h3>
-                <p class="movie-overview">${movie.overview || 'Brak opisu'}</p>
+                <h3 class="movie-title">${title}</h3>
+                <p class="movie-overview">${overview || 'Brak opisu'}</p>
                 <div class="movie-rating">
                     <span class="star">⭐</span>
-                    <span>${movie.rating ? movie.rating.toFixed(1) : 'N/A'}</span>
+                    <span>${rating ? rating.toFixed(1) : 'N/A'}</span>
                 </div>
                 <div class="movie-actions">
-                    <button class="btn-favorite" data-movie-id="${movie.movieId}" data-title="${movie.title}" data-poster="${movie.posterPath || ''}" data-overview="${movie.overview || ''}" data-rating="${movie.rating || 0}">
+                    <button class="btn-favorite" data-movie-id="${movieId}" data-title="${title}" data-poster="${posterPath || ''}" data-overview="${overview || ''}" data-rating="${rating || 0}">
                         <span>❤️</span> Dodaj do ulubionych
                     </button>
                 </div>
@@ -346,29 +520,98 @@ function renderMovies(movies, container) {
         `;
 
         const favoriteBtn = movieCard.querySelector('.btn-favorite');
-        favoriteBtn.addEventListener('click', () => handleAddFavorite(movie.movieId, movie.title, movie.posterPath, movie.overview, movie.rating, favoriteBtn));
+        favoriteBtn.addEventListener('click', () => handleAddFavorite(movieId, title, posterPath, overview, rating, favoriteBtn));
 
         container.appendChild(movieCard);
     });
 }
 
 function renderPagination(currentPage, totalPages, mood) {
+    console.log('renderPagination() wywołana:', { currentPage, totalPages, mood });
+    
     const prevBtn = document.getElementById('prev-page');
     const nextBtn = document.getElementById('next-page');
     const pageInfo = document.getElementById('page-info');
+
+    if (!pageInfo || !prevBtn || !nextBtn) {
+        console.error('Elementy paginacji nie znalezione!', { pageInfo, prevBtn, nextBtn });
+        return;
+    }
 
     pageInfo.textContent = `Strona ${currentPage} z ${totalPages}`;
 
     prevBtn.disabled = currentPage === 1;
     nextBtn.disabled = currentPage === totalPages;
+    
+    console.log('Przyciski paginacji - prev disabled:', prevBtn.disabled, 'next disabled:', nextBtn.disabled);
 
-    prevBtn.onclick = () => {
-        window.location.href = `movies.html?mood=${mood}&page=${currentPage - 1}`;
-    };
+    // Usuń stare event listenery - zastąp przyciski nowymi
+    const paginationContainer = prevBtn.parentElement;
+    const oldPrevBtn = prevBtn;
+    const oldNextBtn = nextBtn;
+    
+    // Stwórz nowe przyciski
+    const newPrevBtn = document.createElement('button');
+    newPrevBtn.id = 'prev-page';
+    newPrevBtn.className = 'btn-pagination';
+    newPrevBtn.textContent = '← Poprzednia';
+    newPrevBtn.disabled = currentPage === 1;
+    
+    const newNextBtn = document.createElement('button');
+    newNextBtn.id = 'next-page';
+    newNextBtn.className = 'btn-pagination';
+    newNextBtn.textContent = 'Następna →';
+    newNextBtn.disabled = currentPage === totalPages;
+    
+    // Zastąp stare przyciski nowymi
+    paginationContainer.replaceChild(newPrevBtn, oldPrevBtn);
+    paginationContainer.replaceChild(newNextBtn, oldNextBtn);
 
-    nextBtn.onclick = () => {
-        window.location.href = `movies.html?mood=${mood}&page=${currentPage + 1}`;
-    };
+    // Określ ścieżkę - jeśli jesteśmy w folderze pages, użyj względnej ścieżki
+    const currentPath = window.location.pathname;
+    const basePath = currentPath.includes('/pages/') ? './' : 'pages/';
+    const moviesPath = `${basePath}movies.html`;
+    
+    console.log('Ścieżka paginacji:', moviesPath);
+
+    // Dodaj event listenery do nowych przycisków
+    newPrevBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Kliknięto "Poprzednia"');
+        if (currentPage > 1) {
+            const newPage = currentPage - 1;
+            console.log('Przechodzenie do strony:', newPage);
+            // Zapisz nastrój i stronę w localStorage
+            localStorage.setItem('selectedMood', mood);
+            localStorage.setItem('currentPage', newPage.toString());
+            const newUrl = `${moviesPath}?mood=${encodeURIComponent(mood)}&page=${newPage}`;
+            console.log('Nowy URL:', newUrl);
+            window.location.href = newUrl;
+        } else {
+            console.log('Jesteś już na pierwszej stronie');
+        }
+    });
+
+    newNextBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('Kliknięto "Następna"');
+        if (currentPage < totalPages) {
+            const newPage = currentPage + 1;
+            console.log('Przechodzenie do strony:', newPage);
+            // Zapisz nastrój i stronę w localStorage
+            localStorage.setItem('selectedMood', mood);
+            localStorage.setItem('currentPage', newPage.toString());
+            const newUrl = `${moviesPath}?mood=${encodeURIComponent(mood)}&page=${newPage}`;
+            console.log('Nowy URL:', newUrl);
+            window.location.href = newUrl;
+        } else {
+            console.log('Jesteś już na ostatniej stronie');
+        }
+    });
+    
+    console.log('Event listenery paginacji dodane do nowych przycisków');
 }
 
 async function handleAddFavorite(movieId, title, posterPath, overview, rating, button) {
@@ -410,38 +653,53 @@ async function handleAddFavorite(movieId, title, posterPath, overview, rating, b
 
 // Favorites page functions
 async function loadFavorites() {
+    console.log('loadFavorites() wywołana!');
     const authRequired = document.getElementById('auth-required');
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
     const favoritesGrid = document.getElementById('favorites-grid');
     const emptyState = document.getElementById('empty-favorites');
 
+    console.log('Elementy DOM favorites:', { authRequired, loadingEl, errorEl, favoritesGrid, emptyState });
+
     if (!isAuthenticated()) {
-        authRequired.style.display = 'block';
-        loadingEl.style.display = 'none';
+        console.log('Użytkownik nie jest zalogowany - pokazuję komunikat');
+        if (authRequired) authRequired.style.display = 'block';
+        if (loadingEl) loadingEl.style.display = 'none';
         return;
     }
 
-    authRequired.style.display = 'none';
-    loadingEl.style.display = 'block';
-    errorEl.style.display = 'none';
-    favoritesGrid.innerHTML = '';
-    emptyState.style.display = 'none';
+    console.log('Użytkownik jest zalogowany - ładowanie ulubionych');
+    if (authRequired) authRequired.style.display = 'none';
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (errorEl) errorEl.style.display = 'none';
+    if (favoritesGrid) {
+        favoritesGrid.innerHTML = '';
+        favoritesGrid.style.display = 'grid';
+    }
+    if (emptyState) emptyState.style.display = 'none';
 
     try {
+        console.log('Wysyłanie żądania do /favorites');
         const favorites = await apiRequest('/favorites');
+        console.log('Otrzymane ulubione:', favorites);
 
-        loadingEl.style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
 
-        if (favorites && favorites.length > 0) {
+        if (favorites && Array.isArray(favorites) && favorites.length > 0) {
+            console.log('Znaleziono', favorites.length, 'ulubionych filmów');
             renderFavorites(favorites, favoritesGrid);
         } else {
-            emptyState.style.display = 'block';
+            console.log('Brak ulubionych filmów');
+            if (emptyState) emptyState.style.display = 'block';
         }
     } catch (error) {
-        loadingEl.style.display = 'none';
-        errorEl.textContent = error.message || 'Błąd podczas ładowania ulubionych.';
-        errorEl.style.display = 'block';
+        console.error('Błąd podczas ładowania ulubionych:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl) {
+            errorEl.textContent = error.message || 'Błąd podczas ładowania ulubionych. Sprawdź konsolę przeglądarki.';
+            errorEl.style.display = 'block';
+        }
     }
 }
 
