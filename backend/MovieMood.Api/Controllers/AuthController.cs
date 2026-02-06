@@ -27,7 +27,7 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(req.Email) ||
             string.IsNullOrWhiteSpace(req.Password))
         {
-            return BadRequest("UserName, Email и Password обязательны.");
+            return BadRequest("Nazwa użytkownika, email i hasło są wymagane.");
         }
 
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
@@ -39,7 +39,7 @@ public class AuthController : ControllerBase
 
         if (exists)
         {
-            return Conflict("Пользователь с таким email или username уже существует.");
+            return Conflict("Użytkownik z takim adresem email lub nazwą użytkownika już istnieje.");
         }
 
         var user = new User
@@ -61,7 +61,7 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(req.UserNameOrEmail) || string.IsNullOrWhiteSpace(req.Password))
         {
-            return BadRequest("UserNameOrEmail и Password обязательны.");
+            return BadRequest("Nazwa użytkownika lub email oraz hasło są wymagane.");
         }
 
         var key = req.UserNameOrEmail.Trim();
@@ -72,13 +72,13 @@ public class AuthController : ControllerBase
 
         if (user is null)
         {
-            return Unauthorized("Неверные учетные данные.");
+            return Unauthorized("Nieprawidłowe dane logowania.");
         }
 
         var ok = BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash);
         if (!ok)
         {
-            return Unauthorized("Неверные учетные данные.");
+            return Unauthorized("Nieprawidłowe dane logowania.");
         }
 
         var token = _tokenService.CreateToken(user);

@@ -52,13 +52,13 @@ public class FavoritesController : ControllerBase
 
         if (string.IsNullOrWhiteSpace(req.MovieId) || string.IsNullOrWhiteSpace(req.Title))
         {
-            return BadRequest("MovieId и Title обязательны.");
+            return BadRequest("MovieId i Title są wymagane.");
         }
 
         var exists = await _db.Favorites.AnyAsync(f => f.UserId == userId.Value && f.MovieId == req.MovieId);
         if (exists)
         {
-            return Conflict("Фильм уже в избранном.");
+            return Conflict("Ten film jest już w ulubionych.");
         }
 
         var fav = new Favorite

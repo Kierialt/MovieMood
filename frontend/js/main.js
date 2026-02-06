@@ -397,7 +397,7 @@ async function handleAddFavorite(movieId, title, posterPath, overview, rating, b
         button.classList.add('favorited');
         button.innerHTML = '<span>✓</span> Dodano do ulubionych';
     } catch (error) {
-        if (error.message.includes('уже в избранном') || error.message.includes('already')) {
+        if (error.message.includes('już w ulubionych') || error.message.includes('already')) {
             button.classList.add('favorited');
             button.innerHTML = '<span>✓</span> Już w ulubionych';
         } else {
