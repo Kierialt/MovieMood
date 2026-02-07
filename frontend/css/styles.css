@@ -75,6 +75,57 @@ nav {
     color: var(--primary-color);
 }
 
+/* Awatar użytkownika w nawigacji (po zalogowaniu) */
+.user-avatar-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+}
+
+.user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 700;
+    font-size: 1.125rem;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Podpowiedź "Wyloguj się" przy hover — jak cień obok awatara */
+.user-avatar-label {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.nav-links a:hover .user-avatar-label {
+    opacity: 0.9;
+    transform: translateY(-50%) translateX(2px);
+}
+
+.nav-links a:hover .user-avatar {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
 /* Main content */
 main {
     flex: 1;

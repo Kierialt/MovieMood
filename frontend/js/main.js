@@ -12,6 +12,9 @@ const removeToken = () => localStorage.removeItem('token');
 const getRole = () => localStorage.getItem('userRole') || 'User';
 const setRole = (role) => { if (role) localStorage.setItem('userRole', role); };
 const removeRole = () => localStorage.removeItem('userRole');
+const getUsername = () => localStorage.getItem('username') || '';
+const setUsername = (username) => { if (username) localStorage.setItem('username', username); };
+const removeUsername = () => localStorage.removeItem('username');
 const isAuthenticated = () => !!getToken();
 
 // API request helper
@@ -52,20 +55,22 @@ async function apiRequest(endpoint, options = {}) {
     }
 }
 
-// Update auth link in navigation
+// Update auth link in navigation (avatar with first letter when logged in)
 function updateAuthLink() {
     const authLinks = document.querySelectorAll('#auth-link');
     authLinks.forEach(link => {
         if (isAuthenticated()) {
-            link.textContent = 'Wyloguj się';
+            const username = getUsername();
+            const letter = username ? username.charAt(0).toUpperCase() : '?';
             link.href = '#';
+            link.innerHTML = `<span class="user-avatar-wrapper"><span class="user-avatar" title="${username || 'Użytkownik'}">${letter}</span><span class="user-avatar-label">Wyloguj się</span></span>`;
             link.onclick = (e) => {
                 e.preventDefault();
                 logout();
             };
         } else {
             link.textContent = 'Zaloguj się';
-            // Sprawdzamy aktualną ścieżkę, aby poprawnie ustawić href
+            link.innerHTML = 'Zaloguj się';
             const currentPath = window.location.pathname;
             const isInPagesFolder = currentPath.includes('/pages/') || 
                                    currentPath.endsWith('/pages') ||
@@ -73,7 +78,6 @@ function updateAuthLink() {
                                    currentPath.includes('movies.html') ||
                                    currentPath.includes('favorites.html') ||
                                    currentPath.includes('auth.html');
-            // Zawsze ustawiamy poprawny href na podstawie aktualnej lokalizacji
             link.href = isInPagesFolder ? 'auth.html' : 'pages/auth.html';
             link.onclick = null;
         }
@@ -84,6 +88,7 @@ function updateAuthLink() {
 function logout() {
     removeToken();
     removeRole();
+    removeUsername();
     updateAuthLink();
     if (window.location.pathname.includes('favorites.html')) {
         // Jesteśmy w folderze pages, więc auth.html jest w tym samym folderze
@@ -229,6 +234,8 @@ async function handleLogin(e) {
         setToken(token);
         const role = data.role || data.Role || 'User';
         setRole(role);
+        const userName = data.userName || data.UserName || '';
+        setUsername(userName);
         updateAuthLink();
         
         // Przekierowanie na stronę główną - używamy bezwzględnej ścieżki
@@ -298,6 +305,8 @@ async function handleRegister(e) {
         setToken(token);
         const role = data.role || data.Role || 'User';
         setRole(role);
+        const userName = data.userName || data.UserName || userName;
+        setUsername(userName);
         updateAuthLink();
         
         // Przekierowanie na stronę główną - używamy bezwzględnej ścieżki
