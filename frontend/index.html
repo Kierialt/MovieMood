@@ -32,27 +32,8 @@
 
         <section class="mood-selection">
             <h3>Jak się dziś czujesz?</h3>
-            <div class="mood-grid">
-                <article class="mood-card" data-mood="Happy">
-                    <div class="mood-icon">😊</div>
-                    <h4>Happy</h4>
-                    <p>Szukasz czegoś wesołego i lekkiego?</p>
-                </article>
-                <article class="mood-card" data-mood="Sad">
-                    <div class="mood-icon">😢</div>
-                    <h4>Sad</h4>
-                    <p>Potrzebujesz czegoś refleksyjnego?</p>
-                </article>
-                <article class="mood-card" data-mood="Romantic">
-                    <div class="mood-icon">💕</div>
-                    <h4>Romantic</h4>
-                    <p>Chcesz poczuć miłość w powietrzu?</p>
-                </article>
-                <article class="mood-card" data-mood="Scary">
-                    <div class="mood-icon">👻</div>
-                    <h4>Scary</h4>
-                    <p>Gotowy na dreszczyk emocji?</p>
-                </article>
+            <div class="mood-grid" id="mood-grid">
+                <!-- Karty nastrojów generowane z MOOD_CONFIG w main.js -->
             </div>
         </section>
     </main>
@@ -61,6 +42,7 @@
         <p>&copy; 2026 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
     </footer>
 
+    <script src="js/mood-config.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

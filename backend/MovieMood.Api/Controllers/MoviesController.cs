@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MovieMood.Api.Config;
 using MovieMood.Api.Dtos;
 using MovieMood.Api.Services;
 
@@ -20,13 +21,14 @@ public class MoviesController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(mood))
         {
-            return BadRequest("Parametr 'mood' jest wymagany. Dostępne wartości: Happy, Sad, Romantic, Scary");
+            var moodsList = string.Join(", ", MoodGenreConfig.SupportedMoods);
+            return BadRequest($"Parametr 'mood' jest wymagany. Dostępne wartości: {moodsList}");
         }
 
-        var validMoods = new[] { "Happy", "Sad", "Romantic", "Scary" };
-        if (!validMoods.Contains(mood, StringComparer.OrdinalIgnoreCase))
+        if (!MoodGenreConfig.IsValidMood(mood))
         {
-            return BadRequest($"Nieprawidłowy nastrój '{mood}'. Dostępne wartości: Happy, Sad, Romantic, Scary");
+            var moodsList = string.Join(", ", MoodGenreConfig.SupportedMoods);
+            return BadRequest($"Nieprawidłowy nastrój '{mood}'. Dostępne wartości: {moodsList}");
         }
 
         var response = await _tmdbService.GetMoviesByMoodAsync(mood, page);

@@ -105,14 +105,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     updateAuthLink();
 
+    // Renderuj karty nastrojów z MOOD_CONFIG (strona główna)
+    const moodGrid = document.getElementById('mood-grid');
+    if (moodGrid && typeof MOOD_CONFIG !== 'undefined') {
+        moodGrid.innerHTML = MOOD_CONFIG.map(m => `
+            <article class="mood-card" data-mood="${m.id}">
+                <div class="mood-icon">${m.emoji}</div>
+                <h4>${m.label}</h4>
+                <p>${m.description}</p>
+            </article>
+        `).join('');
+    }
+
     // Handle mood selection on index page
     const moodCards = document.querySelectorAll('.mood-card');
     console.log('Znaleziono kart nastroju:', moodCards.length);
-    
+
     moodCards.forEach((card, index) => {
         const mood = card.dataset.mood;
         console.log(`Karta ${index + 1}: nastrój =`, mood);
-        
+
         card.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -356,7 +368,10 @@ async function loadMovies() {
     const moodFromStorage = localStorage.getItem('selectedMood');
     
     // Użyj nastrój z URL, jeśli istnieje, w przeciwnym razie z localStorage, w przeciwnym razie domyślny
-    const selectedMood = moodFromUrl || moodFromStorage || 'Happy';
+    let selectedMood = moodFromUrl || moodFromStorage || 'Happy';
+    if (typeof getMoodIds === 'function' && !getMoodIds().includes(selectedMood)) {
+        selectedMood = 'Happy';
+    }
     
     // Sprawdź, czy nastrój się zmienił - porównaj z poprzednim nastrojem w localStorage
     const previousMood = moodFromStorage;
@@ -413,18 +428,15 @@ async function loadMovies() {
     }
     if (pagination) pagination.style.display = 'none';
 
-    const moodNames = {
-        'Happy': '😊 Happy',
-        'Sad': '😢 Sad',
-        'Romantic': '💕 Romantic',
-        'Scary': '👻 Scary'
-    };
+    const moodDisplayLabel = typeof getMoodDisplayLabel === 'function'
+        ? getMoodDisplayLabel(selectedMood)
+        : selectedMood;
 
     if (moodTitle) {
-        moodTitle.textContent = `Filmy dla nastroju: ${moodNames[selectedMood] || selectedMood}`;
+        moodTitle.textContent = `Filmy dla nastroju: ${moodDisplayLabel}`;
     }
     if (moodBadge) {
-        moodBadge.textContent = moodNames[selectedMood] || selectedMood;
+        moodBadge.textContent = moodDisplayLabel;
     }
 
     try {

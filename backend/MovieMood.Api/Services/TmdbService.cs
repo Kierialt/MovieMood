@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using MovieMood.Api.Config;
 using MovieMood.Api.Dtos;
 using MovieMood.Api.Options;
 
@@ -10,15 +11,6 @@ public class TmdbService : ITmdbService
     private readonly HttpClient _httpClient;
     private readonly TmdbOptions _options;
     private readonly JsonSerializerOptions _jsonOptions;
-
-    // Mapowanie nastrojów na genre IDs TMDB
-    private static readonly Dictionary<string, int> MoodToGenreMap = new()
-    {
-        { "Happy", 35 },      // Comedy
-        { "Sad", 18 },        // Drama
-        { "Romantic", 10749 }, // Romance
-        { "Scary", 27 }       // Horror
-    };
 
     public TmdbService(HttpClient httpClient, IOptions<TmdbOptions> options)
     {
@@ -32,29 +24,24 @@ public class TmdbService : ITmdbService
 
     public async Task<TmdbMoviesResponse?> GetMoviesByMoodAsync(string mood, int page = 1)
     {
-        if (!MoodToGenreMap.TryGetValue(mood, out var genreId))
-        {
+        if (!MoodGenreConfig.TryGetGenreIds(mood, out var genreIds) || genreIds == null || genreIds.Length == 0)
             return null;
-        }
 
-        // Sprawdzamy, czy klucz wygląda jak JWT token (zaczyna się od "eyJ")
-        // Jeśli tak, używamy Authorization header, w przeciwnym razie api_key w query string
-        var isAccessToken = !string.IsNullOrEmpty(_options.ApiKey) && 
+        var isAccessToken = !string.IsNullOrEmpty(_options.ApiKey) &&
                            _options.ApiKey.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase);
 
-        // Budujemy URL z odpowiednim parametrem autoryzacji
         var authParam = isAccessToken ? "access_token" : "api_key";
+        var withGenres = string.Join(",", genreIds);
         var url = $"{_options.BaseUrl}/discover/movie" +
                   $"?{authParam}={_options.ApiKey}" +
-                  $"&with_genres={genreId}" +
+                  $"&with_genres={withGenres}" +
                   $"&page={page}" +
                   $"&sort_by=popularity.desc";
 
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
-            
-            // Jeśli to access token, dodajemy też do nagłówka Authorization
+
             if (isAccessToken)
             {
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey);
@@ -70,12 +57,9 @@ public class TmdbService : ITmdbService
         }
         catch (HttpRequestException ex)
         {
-            // Logowanie błędu dla debugowania
             Console.WriteLine($"TMDB API Error: {ex.Message}");
             if (ex.Data.Contains("StatusCode"))
-            {
                 Console.WriteLine($"Status Code: {ex.Data["StatusCode"]}");
-            }
             return null;
         }
         catch (Exception ex)
