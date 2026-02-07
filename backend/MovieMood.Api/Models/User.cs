@@ -13,6 +13,11 @@ public class User
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Rola użytkownika (np. User, Admin). Używana do autoryzacji.
+    /// </summary>
+    public string Role { get; set; } = UserRole.Default;
+
     public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
 
     public ICollection<MoodHistory> MoodHistory { get; set; } = new List<MoodHistory>();

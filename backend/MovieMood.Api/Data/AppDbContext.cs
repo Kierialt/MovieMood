@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
         {
             entity.HasIndex(u => u.UserName).IsUnique();
             entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.Role).HasDefaultValue(UserRole.Default);
         });
 
         modelBuilder.Entity<Favorite>(entity =>

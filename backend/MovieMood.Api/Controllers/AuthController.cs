@@ -46,14 +46,15 @@ public class AuthController : ControllerBase
         {
             UserName = normalizedUserName,
             Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password)
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
+            Role = UserRole.Default
         };
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
         var token = _tokenService.CreateToken(user);
-        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email));
+        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email, user.Role));
     }
 
     [HttpPost("login")]
@@ -82,7 +83,7 @@ public class AuthController : ControllerBase
         }
 
         var token = _tokenService.CreateToken(user);
-        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email));
+        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email, user.Role));
     }
 }
 

@@ -9,6 +9,9 @@ console.log('API_BASE_URL:', API_BASE_URL);
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => localStorage.setItem('token', token);
 const removeToken = () => localStorage.removeItem('token');
+const getRole = () => localStorage.getItem('userRole') || 'User';
+const setRole = (role) => { if (role) localStorage.setItem('userRole', role); };
+const removeRole = () => localStorage.removeItem('userRole');
 const isAuthenticated = () => !!getToken();
 
 // API request helper
@@ -80,6 +83,7 @@ function updateAuthLink() {
 // Logout function
 function logout() {
     removeToken();
+    removeRole();
     updateAuthLink();
     if (window.location.pathname.includes('favorites.html')) {
         // Jesteśmy w folderze pages, więc auth.html jest w tym samym folderze
@@ -223,6 +227,8 @@ async function handleLogin(e) {
         }
 
         setToken(token);
+        const role = data.role || data.Role || 'User';
+        setRole(role);
         updateAuthLink();
         
         // Przekierowanie na stronę główną - używamy bezwzględnej ścieżki
@@ -290,6 +296,8 @@ async function handleRegister(e) {
         }
 
         setToken(token);
+        const role = data.role || data.Role || 'User';
+        setRole(role);
         updateAuthLink();
         
         // Przekierowanie na stronę główną - używamy bezwzględnej ścieżki
