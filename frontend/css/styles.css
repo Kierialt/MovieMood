@@ -246,6 +246,138 @@ main {
     color: var(--text-secondary);
 }
 
+/* Wspólny jasny motyw filmowy — wszystkie główne strony (tło: popcorn, klaps, drewno) */
+body.page-genres,
+body.page-index,
+body.page-movies,
+body.page-favorites,
+body.page-auth {
+    background: #f5f1eb url('../images/film-setup-bg.png') no-repeat center center fixed;
+    background-size: cover;
+    color: #2c2822;
+    min-height: 100vh;
+}
+
+body.page-genres::before,
+body.page-index::before,
+body.page-movies::before,
+body.page-favorites::before,
+body.page-auth::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(252, 250, 246, 0.7) 0%, rgba(248, 245, 238, 0.6) 50%, rgba(245, 241, 232, 0.75) 100%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.page-genres header,
+body.page-index header,
+body.page-movies header,
+body.page-favorites header,
+body.page-auth header {
+    background: rgba(255, 252, 248, 0.92);
+    border-bottom: 1px solid rgba(60, 55, 48, 0.12);
+    box-shadow: 0 2px 20px rgba(60, 55, 48, 0.08);
+}
+
+body.page-genres .logo h1,
+body.page-index .logo h1,
+body.page-movies .logo h1,
+body.page-favorites .logo h1,
+body.page-auth .logo h1 {
+    background: linear-gradient(135deg, #5c5348 0%, #7d6b5c 50%, #6b5d52 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+body.page-genres .nav-links a,
+body.page-index .nav-links a,
+body.page-movies .nav-links a,
+body.page-favorites .nav-links a,
+body.page-auth .nav-links a {
+    color: #5a534a;
+}
+
+body.page-genres .nav-links a:hover,
+body.page-genres .nav-links a.active,
+body.page-index .nav-links a:hover,
+body.page-index .nav-links a.active,
+body.page-movies .nav-links a:hover,
+body.page-movies .nav-links a.active,
+body.page-favorites .nav-links a:hover,
+body.page-favorites .nav-links a.active,
+body.page-auth .nav-links a:hover,
+body.page-auth .nav-links a.active {
+    color: #3d3630;
+}
+
+body.page-genres main,
+body.page-index main,
+body.page-movies main,
+body.page-favorites main,
+body.page-auth main {
+    position: relative;
+    z-index: 1;
+}
+
+body.page-genres footer,
+body.page-index footer,
+body.page-movies footer,
+body.page-favorites footer,
+body.page-auth footer {
+    background: rgba(255, 252, 248, 0.92);
+    border-top: 1px solid rgba(60, 55, 48, 0.12);
+    color: #6b6258;
+    position: relative;
+    z-index: 1;
+}
+
+/* Strona gatunków — dodatkowe style (karty, tytuł, link powrotny) */
+body.page-genres .genre-selection {
+    padding-top: 0.5rem;
+}
+
+body.page-genres .genre-selection h2,
+body.page-genres #genres-title {
+    color: #2c2822;
+    text-shadow: none;
+}
+
+body.page-genres .genre-back-link,
+body.page-genres .genre-back-link a {
+    color: #5a534a;
+}
+
+body.page-genres .genre-back-link a:hover {
+    color: #3d3630;
+}
+
+body.page-genres .genre-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+body.page-genres .genre-card:hover {
+    background: transparent;
+    border: none;
+    box-shadow: 0 8px 32px rgba(60, 55, 48, 0.12);
+}
+
+body.page-genres .genre-card-frame {
+    background-color: transparent;
+}
+
+body.page-genres .genre-card-content h4 {
+    color: #2c2822;
+}
+
+body.page-genres .genre-card-content p {
+    color: #5a534a;
+}
+
 /* Genre selection (genres page) */
 .genre-selection h3 {
     text-align: center;
@@ -260,8 +392,9 @@ main {
 .genre-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
+    gap: 1rem;
     margin-top: 0.5rem;
+    align-items: start;
 }
 
 .mood-card,
@@ -276,11 +409,45 @@ main {
     transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
+/* Karta gatunku z ramką taśmy filmowej */
+.genre-card {
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+.genre-card-frame {
+    width: 100%;
+    min-height: 200px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.genre-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    max-width: 85%;
+}
+
 .mood-card:hover,
 .genre-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-medium);
     border-color: var(--border);
+}
+
+.genre-card:hover .genre-card-frame {
+    filter: brightness(1.02);
 }
 
 .mood-icon,
@@ -296,6 +463,16 @@ main {
     font-weight: 600;
     margin-bottom: 0.4rem;
     color: var(--text-primary);
+}
+
+.genre-card-content h4 {
+    font-weight: 700;
+}
+
+.genre-card-content p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.4;
 }
 
 .mood-card p,
@@ -373,7 +550,7 @@ main {
     width: 100%;
     margin: 0.25rem 0 0 0;
     font-size: 0.95rem;
-    color: var(--text-muted);
+    color: #401782;
 }
 
 .genre-badge,

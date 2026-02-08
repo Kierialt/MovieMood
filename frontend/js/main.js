@@ -146,11 +146,16 @@ document.addEventListener('DOMContentLoaded', () => {
             backLink.innerHTML = `<a href="../index.html">← Strona główna</a>`;
         }
 
+        const filmFrameSrc = window.location.pathname.includes('/pages/') ? '../images/film-frame.png' : 'images/film-frame.png';
         genreGrid.innerHTML = genres.map(g => `
             <article class="genre-card" data-type="${contentType}" data-genre="${g.id}">
-                <div class="genre-icon">🎭</div>
-                <h4>${g.name}</h4>
-                <p>${g.description}</p>
+                <div class="genre-card-frame" style="background-image: url('${filmFrameSrc}');">
+                    <div class="genre-card-content">
+                        <div class="genre-icon">${g.emoji || '🎭'}</div>
+                        <h4>${g.name}</h4>
+                        <p>${g.description}</p>
+                    </div>
+                </div>
             </article>
         `).join('');
 
