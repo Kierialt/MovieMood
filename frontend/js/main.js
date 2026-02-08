@@ -163,9 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!type || !genre) return;
                 localStorage.setItem('contentType', type);
                 localStorage.setItem('contentGenre', genre);
-                localStorage.setItem('moviesPage', '1');
                 const base = window.location.pathname.replace(/genres\.html.*$/i, '');
-                const moviesUrl = base + 'movies.html?type=' + encodeURIComponent(type) + '&genre=' + encodeURIComponent(genre) + '&page=1';
+                const moviesUrl = base + 'movies.html?type=' + encodeURIComponent(type) + '&genre=' + encodeURIComponent(genre);
                 window.location.href = moviesUrl;
             });
         });
@@ -374,6 +373,36 @@ function showError(elementId, message) {
     }
 }
 
+// Movies page – stan infinite scroll
+let moviesScrollState = {
+    page: 1,
+    totalPages: 1,
+    type: '',
+    genreId: null,
+    loading: false,
+    hasMore: false,
+    scrollListenerAttached: false
+};
+
+function moviesCountLabel(count, type) {
+    if (type === 'tv') {
+        if (count === 1) return 'serial';
+        if (count >= 2 && count <= 4) return 'seriale';
+        return 'seriali';
+    }
+    if (count === 1) return 'film';
+    if (count >= 2 && count <= 4) return 'filmy';
+    return 'filmów';
+}
+
+function updateMoviesCount(type, totalResults) {
+    const el = document.getElementById('movies-count');
+    if (!el) return;
+    const total = totalResults != null ? totalResults : 0;
+    el.textContent = `Znaleziono ${total} ${moviesCountLabel(total, type)}`;
+    el.style.display = 'block';
+}
+
 // Movies page functions
 async function loadMovies() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -387,14 +416,9 @@ async function loadMovies() {
     if (genreId == null || !genres.some(g => g.id === genreId)) {
         genreId = genres.length ? genres[0].id : 28;
     }
-    const pageFromUrl = urlParams.get('page');
-    const pageFromStorage = localStorage.getItem('moviesPage');
-    let page = (pageFromUrl || pageFromStorage) ? parseInt(pageFromUrl || pageFromStorage, 10) : 1;
-    if (!Number.isFinite(page) || page < 1) page = 1;
     localStorage.setItem('contentType', type);
     localStorage.setItem('contentGenre', String(genreId));
-    localStorage.setItem('moviesPage', String(page));
-    const search = `?type=${encodeURIComponent(type)}&genre=${encodeURIComponent(genreId)}&page=${page}`;
+    const search = `?type=${encodeURIComponent(type)}&genre=${encodeURIComponent(genreId)}`;
     const expectedUrl = window.location.pathname + search;
     if ((window.location.pathname + (window.location.search || '')) !== expectedUrl) {
         window.history.replaceState({}, '', expectedUrl);
@@ -403,7 +427,7 @@ async function loadMovies() {
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
     const moviesGrid = document.getElementById('movies-grid');
-    const pagination = document.getElementById('pagination');
+    const loadingMoreEl = document.getElementById('loading-more');
     const contentTitleEl = document.getElementById('content-title');
     const genreBadgeEl = document.getElementById('genre-badge');
 
@@ -412,29 +436,36 @@ async function loadMovies() {
         loadingEl.style.display = 'block';
     }
     if (errorEl) errorEl.style.display = 'none';
+    if (loadingMoreEl) loadingMoreEl.style.display = 'none';
     if (moviesGrid) {
         moviesGrid.innerHTML = '';
         moviesGrid.style.display = 'grid';
     }
-    if (pagination) pagination.style.display = 'none';
+
+    moviesScrollState = { page: 1, totalPages: 1, type, genreId, loading: true, hasMore: false, scrollListenerAttached: moviesScrollState.scrollListenerAttached };
 
     const genreName = typeof getGenreName === 'function' ? getGenreName(type, genreId) : String(genreId);
     if (contentTitleEl) contentTitleEl.textContent = type === 'tv' ? 'Seriały' : 'Filmy';
     if (genreBadgeEl) genreBadgeEl.textContent = genreName;
 
+    const countEl = document.getElementById('movies-count');
+    if (countEl) countEl.style.display = 'none';
+
     try {
-        const data = await apiRequest(`/movies?type=${encodeURIComponent(type)}&genre=${genreId}&page=${page}`);
+        const data = await apiRequest(`/movies?type=${encodeURIComponent(type)}&genre=${genreId}&page=1`);
         if (loadingEl) loadingEl.style.display = 'none';
+        moviesScrollState.loading = false;
 
         if (data.results && data.results.length > 0) {
             if (moviesGrid) moviesGrid.style.display = 'grid';
-            renderMovies(data.results, moviesGrid);
-            if (data.totalPages > 1) {
-                renderPagination(data.page, data.totalPages, type, genreId);
-                if (pagination) pagination.style.display = 'flex';
-            }
+            renderMovies(data.results, moviesGrid, false);
+            moviesScrollState.page = data.page || 1;
+            moviesScrollState.totalPages = data.totalPages || 1;
+            moviesScrollState.hasMore = moviesScrollState.page < moviesScrollState.totalPages;
+            updateMoviesCount(type, data.totalResults);
+            attachMoviesScrollListener();
         } else {
-            if (loadingEl) loadingEl.style.display = 'none';
+            updateMoviesCount(type, data.totalResults ?? 0);
             if (moviesGrid) {
                 moviesGrid.innerHTML = '<p class="empty-state">Brak wyników dla tego gatunku.</p>';
                 moviesGrid.style.display = 'block';
@@ -442,6 +473,7 @@ async function loadMovies() {
         }
     } catch (error) {
         console.error('Błąd podczas ładowania:', error);
+        moviesScrollState.loading = false;
         if (loadingEl) loadingEl.style.display = 'none';
         if (errorEl) {
             errorEl.textContent = error.message || 'Błąd podczas ładowania. Sprawdź konsolę przeglądarki.';
@@ -450,20 +482,50 @@ async function loadMovies() {
     }
 }
 
-function renderMovies(movies, container) {
-    console.log('renderMovies() wywołana z', movies.length, 'filmami');
-    console.log('Container:', container);
-    
-    if (!container) {
-        console.error('Container nie istnieje!');
-        return;
+function attachMoviesScrollListener() {
+    if (moviesScrollState.scrollListenerAttached) return;
+    moviesScrollState.scrollListenerAttached = true;
+    const scrollHandler = () => {
+        const threshold = 500;
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - threshold) {
+            loadMoreMovies();
+        }
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+}
+
+async function loadMoreMovies() {
+    if (moviesScrollState.loading || !moviesScrollState.hasMore) return;
+    const { type, genreId, page, totalPages } = moviesScrollState;
+    const nextPage = page + 1;
+    if (nextPage > totalPages) return;
+
+    moviesScrollState.loading = true;
+    const loadingMoreEl = document.getElementById('loading-more');
+    const moviesGrid = document.getElementById('movies-grid');
+    if (loadingMoreEl) loadingMoreEl.style.display = 'block';
+
+    try {
+        const data = await apiRequest(`/movies?type=${encodeURIComponent(type)}&genre=${genreId}&page=${nextPage}`);
+        if (data.results && data.results.length > 0 && moviesGrid) {
+            renderMovies(data.results, moviesGrid, true);
+        }
+        moviesScrollState.page = data.page || nextPage;
+        moviesScrollState.totalPages = data.totalPages || totalPages;
+        moviesScrollState.hasMore = moviesScrollState.page < moviesScrollState.totalPages;
+    } catch (error) {
+        console.error('Błąd podczas ładowania kolejnych:', error);
+    } finally {
+        moviesScrollState.loading = false;
+        if (loadingMoreEl) loadingMoreEl.style.display = 'none';
     }
-    
-    container.innerHTML = '';
+}
+
+function renderMovies(movies, container, append = false) {
+    if (!container) return;
+    if (!append) container.innerHTML = '';
 
     movies.forEach((movie, index) => {
-        console.log(`Renderowanie filmu ${index + 1}:`, movie);
-        
         // Obsługa zarówno camelCase jak i PascalCase (C# może zwracać różne formaty)
         const movieId = movie.movieId || movie.MovieId || '';
         const title = movie.title || movie.Title || 'Bez tytułu';
@@ -500,58 +562,6 @@ function renderMovies(movies, container) {
         favoriteBtn.addEventListener('click', () => handleAddFavorite(movieId, title, posterPath, overview, rating, favoriteBtn));
 
         container.appendChild(movieCard);
-    });
-}
-
-function updateMoviesPageUrl(type, genreId, page) {
-    const search = `?type=${encodeURIComponent(type)}&genre=${encodeURIComponent(genreId)}&page=${page}`;
-    const url = window.location.pathname + search;
-    window.history.replaceState({}, '', url);
-}
-
-function renderPagination(currentPage, totalPages, contentType, genreId) {
-    const prevBtn = document.getElementById('prev-page');
-    const nextBtn = document.getElementById('next-page');
-    const pageInfo = document.getElementById('page-info');
-    if (!pageInfo || !prevBtn || !nextBtn) return;
-
-    pageInfo.textContent = `Strona ${currentPage} z ${totalPages}`;
-    prevBtn.disabled = currentPage === 1;
-    nextBtn.disabled = currentPage === totalPages;
-
-    const paginationContainer = prevBtn.parentElement;
-    const oldPrevBtn = prevBtn;
-    const oldNextBtn = nextBtn;
-    const newPrevBtn = document.createElement('button');
-    newPrevBtn.id = 'prev-page';
-    newPrevBtn.className = 'btn-pagination';
-    newPrevBtn.textContent = '← Poprzednia';
-    newPrevBtn.disabled = currentPage === 1;
-    const newNextBtn = document.createElement('button');
-    newNextBtn.id = 'next-page';
-    newNextBtn.className = 'btn-pagination';
-    newNextBtn.textContent = 'Następna →';
-    newNextBtn.disabled = currentPage === totalPages;
-    paginationContainer.replaceChild(newPrevBtn, oldPrevBtn);
-    paginationContainer.replaceChild(newNextBtn, oldNextBtn);
-
-    newPrevBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (currentPage > 1) {
-            const newPage = currentPage - 1;
-            updateMoviesPageUrl(contentType, genreId, newPage);
-            loadMovies();
-        }
-    });
-    newNextBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (currentPage < totalPages) {
-            const newPage = currentPage + 1;
-            updateMoviesPageUrl(contentType, genreId, newPage);
-            loadMovies();
-        }
     });
 }
 

@@ -25,6 +25,7 @@
     <main>
         <section class="movies-header">
             <h2 id="content-title">Filmy</h2>
+            <p id="movies-count" class="movies-count" style="display: none;"></p>
             <div class="genre-badge" id="genre-badge"></div>
             <button class="btn-secondary" id="change-genre-btn">Zmień gatunek</button>
         </section>
@@ -33,11 +34,7 @@
             <div id="loading" class="loading">Ładowanie filmów...</div>
             <div id="error" class="error" style="display: none;"></div>
             <div id="movies-grid" class="movies-grid"></div>
-            <div class="pagination" id="pagination" style="display: none;">
-                <button id="prev-page" class="btn-pagination">← Poprzednia</button>
-                <span id="page-info">Strona 1 z 1</span>
-                <button id="next-page" class="btn-pagination">Następna →</button>
-            </div>
+            <div id="loading-more" class="loading-more" style="display: none;">Ładowanie kolejnych...</div>
         </section>
     </main>
 

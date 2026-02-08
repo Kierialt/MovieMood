@@ -369,6 +369,13 @@ main {
     flex-wrap: wrap;
 }
 
+.movies-count {
+    width: 100%;
+    margin: 0.25rem 0 0 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
 .genre-badge,
 .mood-badge {
     background: var(--gradient-main);
@@ -497,19 +504,12 @@ main {
     cursor: not-allowed;
 }
 
-/* Pagination */
-.pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 2rem;
-    flex-wrap: wrap;
-}
-
-#page-info {
-    font-weight: 600;
-    color: var(--text-primary);
+/* Infinite scroll – ładowanie kolejnych */
+.loading-more {
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    color: var(--text-muted);
     font-size: 0.95rem;
 }
 
