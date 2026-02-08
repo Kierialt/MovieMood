@@ -16,42 +16,45 @@ public class MoviesController : ControllerBase
         _tmdbService = tmdbService;
     }
 
+    /// <summary>
+    /// Pobiera listę filmów lub seriali z TMDB: type = movie | tv, genre = ID gatunku TMDB.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<object>> GetMovies([FromQuery] string? mood, [FromQuery] int page = 1)
+    public async Task<ActionResult<object>> GetMovies(
+        [FromQuery] string? type,
+        [FromQuery] int? genre,
+        [FromQuery] int page = 1)
     {
-        if (string.IsNullOrWhiteSpace(mood))
-        {
-            var moodsList = string.Join(", ", MoodGenreConfig.SupportedMoods);
-            return BadRequest($"Parametr 'mood' jest wymagany. Dostępne wartości: {moodsList}");
-        }
+        if (string.IsNullOrWhiteSpace(type))
+            return BadRequest("Parametr 'type' jest wymagany. Dostępne wartości: movie, tv");
 
-        if (!MoodGenreConfig.IsValidMood(mood))
-        {
-            var moodsList = string.Join(", ", MoodGenreConfig.SupportedMoods);
-            return BadRequest($"Nieprawidłowy nastrój '{mood}'. Dostępne wartości: {moodsList}");
-        }
+        if (!GenreConfig.IsValidContentType(type))
+            return BadRequest("Nieprawidłowy typ. Dostępne wartości: movie, tv");
 
-        var response = await _tmdbService.GetMoviesByMoodAsync(mood, page);
+        if (genre == null)
+            return BadRequest("Parametr 'genre' (ID gatunku TMDB) jest wymagany.");
+
+        if (!GenreConfig.IsValidGenre(type, genre.Value))
+            return BadRequest($"Nieprawidłowy gatunek dla typu '{type}'.");
+
+        var response = await _tmdbService.GetDiscoverAsync(type, genre.Value, page);
 
         if (response == null)
-        {
-            return StatusCode(500, "Błąd podczas pobierania filmów z TMDB");
-        }
+            return StatusCode(500, "Błąd podczas pobierania danych z TMDB");
 
-        // Mapowanie na format odpowiedzi dla frontendu
-        var movies = response.Results.Select(m => new MovieResponse(
+        var items = response.Results.Select(m => new MovieResponse(
             m.Id.ToString(),
-            m.Title,
+            m.Title ?? m.Name ?? "Bez tytułu",
             m.Overview,
             m.PosterPath,
             m.VoteAverage,
-            m.ReleaseDate
+            m.ReleaseDate ?? m.FirstAirDate
         )).ToList();
 
         return Ok(new
         {
             page = response.Page,
-            results = movies,
+            results = items,
             totalPages = response.TotalPages,
             totalResults = response.TotalResults
         });

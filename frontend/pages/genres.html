@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movie Mood Picker - Filmy</title>
+    <title>Movie Mood Picker - Gatunki</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="../css/styles.css">
 </head>
@@ -23,20 +23,11 @@
     </header>
 
     <main>
-        <section class="movies-header">
-            <h2 id="content-title">Filmy</h2>
-            <div class="genre-badge" id="genre-badge"></div>
-            <button class="btn-secondary" id="change-genre-btn">Zmień gatunek</button>
-        </section>
-
-        <section class="movies-container">
-            <div id="loading" class="loading">Ładowanie filmów...</div>
-            <div id="error" class="error" style="display: none;"></div>
-            <div id="movies-grid" class="movies-grid"></div>
-            <div class="pagination" id="pagination" style="display: none;">
-                <button id="prev-page" class="btn-pagination">← Poprzednia</button>
-                <span id="page-info">Strona 1 z 1</span>
-                <button id="next-page" class="btn-pagination">Następna →</button>
+        <section class="genre-selection">
+            <h2 id="genres-title">Gatunki</h2>
+            <p class="genre-back-link" id="genre-back-link"></p>
+            <div class="genre-grid" id="genre-grid">
+                <!-- Karty gatunków generowane w main.js z genre-config.js -->
             </div>
         </section>
     </main>

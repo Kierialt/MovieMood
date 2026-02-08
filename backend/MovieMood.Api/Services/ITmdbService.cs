@@ -4,5 +4,8 @@ namespace MovieMood.Api.Services;
 
 public interface ITmdbService
 {
-    Task<TmdbMoviesResponse?> GetMoviesByMoodAsync(string mood, int page = 1);
+    /// <summary>
+    /// Pobiera listę z TMDB discover: type = "movie" lub "tv", genreId = ID gatunku TMDB.
+    /// </summary>
+    Task<TmdbDiscoverResponse?> GetDiscoverAsync(string type, int genreId, int page = 1);
 }

@@ -57,6 +57,8 @@ builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
     {
         policy.WithOrigins(
+                "http://172.20.10.2:3000",
+                "http://172.20.10.7:3000",
                 "http://10.201.32.192:3000",
                 "http://192.168.0.136:3000",
                 "http://localhost:3000",

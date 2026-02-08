@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Mood Picker - Strona Główna</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -23,17 +24,25 @@
 
     <main>
         <section class="hero">
-            <h2>Znajdź idealny film dla swojego nastroju!</h2>
+            <h2>Znajdź idealny film lub serial!</h2>
             <p class="description">
-                Movie Mood Picker to aplikacja, która pomoże Ci znaleźć film idealnie dopasowany do Twojego aktualnego nastroju. 
-                Wybierz swój nastrój, a my pokażemy Ci najlepsze rekomendacje!
+                Wybierz typ kontekstu, potem gatunek — pokażemy Ci najlepsze rekomendacje z TMDB.
             </p>
         </section>
 
-        <section class="mood-selection">
-            <h3>Jak się dziś czujesz?</h3>
-            <div class="mood-grid" id="mood-grid">
-                <!-- Karty nastrojów generowane z MOOD_CONFIG w main.js -->
+        <section class="content-type-selection">
+            <h3>Wybierz typ kontekstu</h3>
+            <div class="content-type-grid" id="content-type-grid">
+                <article class="content-type-card" data-type="movie">
+                    <div class="content-type-icon">🎬</div>
+                    <h4>Movies</h4>
+                    <p>Filmy</p>
+                </article>
+                <article class="content-type-card" data-type="tv">
+                    <div class="content-type-icon">📺</div>
+                    <h4>TV Shows</h4>
+                    <p>Seriale</p>
+                </article>
             </div>
         </section>
     </main>
@@ -42,7 +51,7 @@
         <p>&copy; 2026 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
     </footer>
 
-    <script src="js/mood-config.js"></script>
+    <script src="js/genre-config.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

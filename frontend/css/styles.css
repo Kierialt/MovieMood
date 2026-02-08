@@ -190,7 +190,8 @@ main {
     line-height: 1.7;
 }
 
-/* Mood selection */
+/* Content type selection (home) */
+.content-type-selection h3,
 .mood-selection h3 {
     text-align: center;
     font-size: 1.5rem;
@@ -200,14 +201,17 @@ main {
     color: var(--text-primary);
 }
 
-.mood-grid {
+.content-type-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.5rem;
     margin-top: 0.5rem;
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.mood-card {
+.content-type-card {
     background: var(--gradient-card);
     border-radius: var(--radius);
     padding: 2rem 1.5rem;
@@ -218,26 +222,84 @@ main {
     transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 
-.mood-card:hover {
+.content-type-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-medium);
     border-color: var(--border);
 }
 
-.mood-icon {
+.content-type-icon {
     font-size: 3.25rem;
     margin-bottom: 1rem;
     opacity: 0.9;
 }
 
-.mood-card h4 {
+.content-type-card h4 {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 0.4rem;
     color: var(--text-primary);
 }
 
-.mood-card p {
+.content-type-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* Genre selection (genres page) */
+.genre-selection h3 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.mood-grid,
+.genre-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.mood-card,
+.genre-card {
+    background: var(--gradient-card);
+    border-radius: var(--radius);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-soft);
+    cursor: pointer;
+    transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+
+.mood-card:hover,
+.genre-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-medium);
+    border-color: var(--border);
+}
+
+.mood-icon,
+.genre-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+}
+
+.mood-card h4,
+.genre-card h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    color: var(--text-primary);
+}
+
+.mood-card p,
+.genre-card p {
     font-size: 0.9rem;
     color: var(--text-secondary);
 }
@@ -307,6 +369,7 @@ main {
     flex-wrap: wrap;
 }
 
+.genre-badge,
 .mood-badge {
     background: var(--gradient-main);
     color: rgba(255,255,255,0.98);
@@ -588,7 +651,9 @@ footer {
         font-size: 1.85rem;
     }
 
-    .mood-grid {
+    .mood-grid,
+    .genre-grid,
+    .content-type-grid {
         grid-template-columns: 1fr;
     }
 
@@ -637,6 +702,8 @@ footer {
 }
 
 .movie-card,
-.mood-card {
+.mood-card,
+.genre-card,
+.content-type-card {
     animation: fadeIn 0.4s ease;
 }

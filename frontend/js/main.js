@@ -105,67 +105,71 @@ document.addEventListener('DOMContentLoaded', () => {
     
     updateAuthLink();
 
-    // Renderuj karty nastrojów z MOOD_CONFIG (strona główna)
-    const moodGrid = document.getElementById('mood-grid');
-    if (moodGrid && typeof MOOD_CONFIG !== 'undefined') {
-        moodGrid.innerHTML = MOOD_CONFIG.map(m => `
-            <article class="mood-card" data-mood="${m.id}">
-                <div class="mood-icon">${m.emoji}</div>
-                <h4>${m.label}</h4>
-                <p>${m.description}</p>
-            </article>
-        `).join('');
+    // Strona główna: klik w typ kontekstu → strona gatunków (zapis type, zawsze page=1)
+    const contentTypeGrid = document.getElementById('content-type-grid');
+    if (contentTypeGrid) {
+        const cards = contentTypeGrid.querySelectorAll('.content-type-card');
+        const basePath = window.location.pathname.includes('/pages/') ? './' : 'pages/';
+        cards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const type = (card.dataset.type || 'movie').toLowerCase();
+                if (type === 'tv' || type === 'movie') {
+                    localStorage.setItem('contentType', type);
+                    localStorage.removeItem('contentGenre');
+                    localStorage.removeItem('moviesPage');
+                }
+                window.location.assign(`${basePath}genres.html?type=${encodeURIComponent(type)}`);
+            });
+        });
     }
 
-    // Handle mood selection on index page
-    const moodCards = document.querySelectorAll('.mood-card');
-    console.log('Znaleziono kart nastroju:', moodCards.length);
+    // Strona gatunków: type z URL lub localStorage; render kart; klik → zapis type+genre, movies?type=&genre=&page=1
+    const genreGrid = document.getElementById('genre-grid');
+    if (genreGrid && typeof getGenres === 'function') {
+        const urlParams = new URLSearchParams(window.location.search);
+        let contentType = (urlParams.get('type') || localStorage.getItem('contentType') || 'movie').toLowerCase();
+        if (contentType !== 'movie' && contentType !== 'tv') contentType = 'movie';
+        if (!urlParams.get('type')) {
+            const genresPath = window.location.pathname.replace(/[^/]+$/, '') + 'genres.html';
+            window.history.replaceState({}, '', `${genresPath}?type=${contentType}`);
+        }
+        const genres = getGenres(contentType);
+        const typeLabel = getContentTypeLabel(contentType);
 
-    moodCards.forEach((card, index) => {
-        const mood = card.dataset.mood;
-        console.log(`Karta ${index + 1}: nastrój =`, mood);
+        const titleEl = document.getElementById('genres-title');
+        if (titleEl) titleEl.textContent = `Gatunki: ${typeLabel}`;
 
-        card.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const selectedMood = card.dataset.mood;
-            console.log('Kliknięto kartę nastroju:', selectedMood);
-            
-            // Sprawdź, czy jesteś na stronie głównej czy w folderze pages
-            const currentPath = window.location.pathname;
-            let basePath;
-            
-            if (currentPath.includes('/pages/')) {
-                basePath = './';
-            } else if (currentPath.endsWith('/') || currentPath === '/') {
-                basePath = 'pages/';
-            } else {
-                basePath = 'pages/';
-            }
-            
-            // Sprawdź, czy nastrój się zmienił
-            const previousMood = localStorage.getItem('selectedMood');
-            localStorage.setItem('selectedMood', selectedMood);
-            
-            // Jeśli nastrój się zmienił, resetuj stronę do 1
-            if (previousMood && previousMood !== selectedMood) {
-                console.log('Nastrój się zmienił z', previousMood, 'na', selectedMood, '- resetowanie strony do 1');
-                localStorage.removeItem('currentPage');
-            }
-            
-            console.log('Zapisano nastrój w localStorage:', selectedMood);
-            
-            // Zawsze zaczynaj od strony 1 przy wyborze nastroju
-            const url = `${basePath}movies.html?mood=${encodeURIComponent(selectedMood)}&page=1`;
-            console.log('Aktualna ścieżka:', currentPath);
-            console.log('Base path:', basePath);
-            console.log('Pełny URL przekierowania:', url);
-            
-            // Użyj window.location.assign zamiast href, aby zachować parametry
-            window.location.assign(url);
+        const backLink = document.getElementById('genre-back-link');
+        if (backLink) {
+            backLink.innerHTML = `<a href="../index.html">← Strona główna</a>`;
+        }
+
+        genreGrid.innerHTML = genres.map(g => `
+            <article class="genre-card" data-type="${contentType}" data-genre="${g.id}">
+                <div class="genre-icon">🎭</div>
+                <h4>${g.name}</h4>
+                <p>${g.description}</p>
+            </article>
+        `).join('');
+
+        genreGrid.querySelectorAll('.genre-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const type = (card.dataset.type || 'movie').toLowerCase();
+                const genre = String(card.dataset.genre || '');
+                if (!type || !genre) return;
+                localStorage.setItem('contentType', type);
+                localStorage.setItem('contentGenre', genre);
+                localStorage.setItem('moviesPage', '1');
+                const base = window.location.pathname.replace(/genres\.html.*$/i, '');
+                const moviesUrl = base + 'movies.html?type=' + encodeURIComponent(type) + '&genre=' + encodeURIComponent(genre) + '&page=1';
+                window.location.href = moviesUrl;
+            });
         });
-    });
+    }
 
     // Handle auth tabs
     const tabButtons = document.querySelectorAll('.tab-btn');
@@ -201,10 +205,20 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Sprawdzanie ścieżki dla movies:', pathname, 'jest stroną movies?', isMoviesPage);
     
     if (isMoviesPage) {
-        console.log('Wywoływanie loadMovies()...');
         loadMovies();
-        document.getElementById('change-mood-btn')?.addEventListener('click', () => {
-            window.location.href = '../index.html';
+        document.getElementById('change-genre-btn')?.addEventListener('click', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            let type = (urlParams.get('type') || localStorage.getItem('contentType') || 'movie').toLowerCase();
+            if (type !== 'movie' && type !== 'tv') type = 'movie';
+            // Strona movies jest zawsze w folderze pages/ — przechodzimy do genres w tym samym folderze
+            const pathname = window.location.pathname;
+            const href = (pathname.includes('/pages/') || pathname.endsWith('movies.html'))
+                ? 'genres.html?type=' + encodeURIComponent(type)
+                : 'pages/genres.html?type=' + encodeURIComponent(type);
+            window.location.href = href;
+        });
+        window.addEventListener('popstate', () => {
+            if (window.location.pathname.includes('movies.html')) loadMovies();
         });
     } else {
         console.log('Nie jesteś na stronie movies');
@@ -362,143 +376,77 @@ function showError(elementId, message) {
 
 // Movies page functions
 async function loadMovies() {
-    console.log('loadMovies() wywołana!');
     const urlParams = new URLSearchParams(window.location.search);
-    const moodFromUrl = urlParams.get('mood');
-    const moodFromStorage = localStorage.getItem('selectedMood');
-    
-    // Użyj nastrój z URL, jeśli istnieje, w przeciwnym razie z localStorage, w przeciwnym razie domyślny
-    let selectedMood = moodFromUrl || moodFromStorage || 'Happy';
-    if (typeof getMoodIds === 'function' && !getMoodIds().includes(selectedMood)) {
-        selectedMood = 'Happy';
+    let type = (urlParams.get('type') || localStorage.getItem('contentType') || 'movie').toLowerCase();
+    if (type !== 'movie' && type !== 'tv') type = 'movie';
+    let genreFromUrl = urlParams.get('genre');
+    const genreFromStorage = localStorage.getItem('contentGenre');
+    if (!genreFromUrl && genreFromStorage) genreFromUrl = genreFromStorage;
+    let genreId = genreFromUrl ? parseInt(genreFromUrl, 10) : null;
+    const genres = typeof getGenres === 'function' ? getGenres(type) : [];
+    if (genreId == null || !genres.some(g => g.id === genreId)) {
+        genreId = genres.length ? genres[0].id : 28;
     }
-    
-    // Sprawdź, czy nastrój się zmienił - porównaj z poprzednim nastrojem w localStorage
-    const previousMood = moodFromStorage;
-    const moodChanged = previousMood && previousMood !== selectedMood;
-    
-    console.log('Sprawdzanie zmiany nastroju - poprzedni:', previousMood, 'aktualny:', selectedMood, 'zmieniony?', moodChanged);
-    
-    // Pobierz stronę z URL
     const pageFromUrl = urlParams.get('page');
-    let page;
-    
-    if (moodChanged) {
-        // Jeśli nastrój się zmienił, zawsze zacznij od strony 1
-        console.log('Wykryto zmianę nastroju z', previousMood, 'na', selectedMood, '- resetowanie strony do 1');
-        localStorage.removeItem('currentPage');
-        page = 1;
-        // Zaktualizuj URL, aby zawierał page=1
-        const newUrl = `${window.location.pathname}?mood=${encodeURIComponent(selectedMood)}&page=1`;
-        window.history.replaceState({}, '', newUrl);
-    } else if (!pageFromUrl) {
-        // Jeśli nie ma strony w URL i nastrój się nie zmienił, użyj z localStorage lub 1
-        const pageFromStorage = localStorage.getItem('currentPage');
-        page = parseInt(pageFromStorage) || 1;
-    } else {
-        // Użyj strony z URL (dla tego samego nastroju)
-        page = parseInt(pageFromUrl) || 1;
-    }
-    
-    console.log('Parametry - mood:', selectedMood, 'page:', page, 'moodChanged:', moodChanged);
-    
-    if (!moodFromUrl && moodFromStorage && !moodChanged) {
-        console.log('Używam nastroju z localStorage:', moodFromStorage);
-        // Opcjonalnie: zaktualizuj URL bez przeładowania strony
-        const newUrl = `${window.location.pathname}?mood=${encodeURIComponent(moodFromStorage)}&page=${page}`;
-        window.history.replaceState({}, '', newUrl);
-    } else if (!moodFromUrl && !moodFromStorage) {
-        console.warn('Brak parametru mood w URL i localStorage, używam domyślnego: Happy');
+    const pageFromStorage = localStorage.getItem('moviesPage');
+    let page = (pageFromUrl || pageFromStorage) ? parseInt(pageFromUrl || pageFromStorage, 10) : 1;
+    if (!Number.isFinite(page) || page < 1) page = 1;
+    localStorage.setItem('contentType', type);
+    localStorage.setItem('contentGenre', String(genreId));
+    localStorage.setItem('moviesPage', String(page));
+    const search = `?type=${encodeURIComponent(type)}&genre=${encodeURIComponent(genreId)}&page=${page}`;
+    const expectedUrl = window.location.pathname + search;
+    if ((window.location.pathname + (window.location.search || '')) !== expectedUrl) {
+        window.history.replaceState({}, '', expectedUrl);
     }
 
     const loadingEl = document.getElementById('loading');
     const errorEl = document.getElementById('error');
     const moviesGrid = document.getElementById('movies-grid');
     const pagination = document.getElementById('pagination');
-    const moodTitle = document.getElementById('mood-title');
-    const moodBadge = document.getElementById('mood-badge');
+    const contentTitleEl = document.getElementById('content-title');
+    const genreBadgeEl = document.getElementById('genre-badge');
 
-    console.log('Elementy DOM:', { loadingEl, errorEl, moviesGrid, pagination });
-
-    if (loadingEl) loadingEl.style.display = 'block';
+    if (loadingEl) {
+        loadingEl.textContent = type === 'tv' ? 'Ładowanie seriali...' : 'Ładowanie filmów...';
+        loadingEl.style.display = 'block';
+    }
     if (errorEl) errorEl.style.display = 'none';
     if (moviesGrid) {
         moviesGrid.innerHTML = '';
-        moviesGrid.style.display = 'grid'; // Upewnij się, że grid jest widoczny
+        moviesGrid.style.display = 'grid';
     }
     if (pagination) pagination.style.display = 'none';
 
-    const moodDisplayLabel = typeof getMoodDisplayLabel === 'function'
-        ? getMoodDisplayLabel(selectedMood)
-        : selectedMood;
-
-    if (moodTitle) {
-        moodTitle.textContent = `Filmy dla nastroju: ${moodDisplayLabel}`;
-    }
-    if (moodBadge) {
-        moodBadge.textContent = moodDisplayLabel;
-    }
+    const genreName = typeof getGenreName === 'function' ? getGenreName(type, genreId) : String(genreId);
+    if (contentTitleEl) contentTitleEl.textContent = type === 'tv' ? 'Seriały' : 'Filmy';
+    if (genreBadgeEl) genreBadgeEl.textContent = genreName;
 
     try {
-        console.log('Ładowanie filmów dla nastroju:', selectedMood, 'strona:', page);
-        const data = await apiRequest(`/movies?mood=${selectedMood}&page=${page}`);
-        console.log('Otrzymane dane z API:', data);
-
-        loadingEl.style.display = 'none';
+        const data = await apiRequest(`/movies?type=${encodeURIComponent(type)}&genre=${genreId}&page=${page}`);
+        if (loadingEl) loadingEl.style.display = 'none';
 
         if (data.results && data.results.length > 0) {
-            console.log('Znaleziono', data.results.length, 'filmów');
-            console.log('Przykładowy film:', data.results[0]);
-            console.log('Element moviesGrid:', moviesGrid);
-            
-            // Ukryj loading przed renderowaniem
-            if (loadingEl) {
-                loadingEl.style.display = 'none';
-                console.log('Loading ukryty. Display:', window.getComputedStyle(loadingEl).display);
-            }
-            
-            // Pokaż grid
-            if (moviesGrid) {
-                moviesGrid.style.display = 'grid';
-            }
-            
+            if (moviesGrid) moviesGrid.style.display = 'grid';
             renderMovies(data.results, moviesGrid);
-            console.log('Filmy zrenderowane. Liczba elementów w grid:', moviesGrid.children.length);
-            
-            // Sprawdź widoczność elementów
-            if (moviesGrid) {
-                const computedStyle = window.getComputedStyle(moviesGrid);
-                console.log('Grid CSS - display:', computedStyle.display, 'visibility:', computedStyle.visibility, 'opacity:', computedStyle.opacity);
-                console.log('Grid height:', computedStyle.height, 'width:', computedStyle.width);
-                
-                // Sprawdź pierwszy element filmu
-                if (moviesGrid.children.length > 0) {
-                    const firstMovie = moviesGrid.children[0];
-                    const movieStyle = window.getComputedStyle(firstMovie);
-                    console.log('Pierwszy film - display:', movieStyle.display, 'visibility:', movieStyle.visibility, 'height:', movieStyle.height);
-                    console.log('Pierwszy film HTML:', firstMovie.outerHTML.substring(0, 200));
-                }
-            }
-            
             if (data.totalPages > 1) {
-                renderPagination(data.page, data.totalPages, selectedMood);
-                pagination.style.display = 'flex';
+                renderPagination(data.page, data.totalPages, type, genreId);
+                if (pagination) pagination.style.display = 'flex';
             }
         } else {
-            console.warn('Brak wyników w odpowiedzi:', data);
-            if (loadingEl) {
-                loadingEl.style.display = 'none';
-            }
+            if (loadingEl) loadingEl.style.display = 'none';
             if (moviesGrid) {
-                moviesGrid.innerHTML = '<p class="empty-state">Brak filmów dla tego nastroju.</p>';
+                moviesGrid.innerHTML = '<p class="empty-state">Brak wyników dla tego gatunku.</p>';
                 moviesGrid.style.display = 'block';
             }
         }
     } catch (error) {
-        console.error('Błąd podczas ładowania filmów:', error);
-        loadingEl.style.display = 'none';
-        errorEl.textContent = error.message || 'Błąd podczas ładowania filmów. Sprawdź konsolę przeglądarki.';
-        errorEl.style.display = 'block';
+        console.error('Błąd podczas ładowania:', error);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl) {
+            errorEl.textContent = error.message || 'Błąd podczas ładowania. Sprawdź konsolę przeglądarki.';
+            errorEl.style.display = 'block';
+        }
     }
 }
 
@@ -555,92 +503,56 @@ function renderMovies(movies, container) {
     });
 }
 
-function renderPagination(currentPage, totalPages, mood) {
-    console.log('renderPagination() wywołana:', { currentPage, totalPages, mood });
-    
+function updateMoviesPageUrl(type, genreId, page) {
+    const search = `?type=${encodeURIComponent(type)}&genre=${encodeURIComponent(genreId)}&page=${page}`;
+    const url = window.location.pathname + search;
+    window.history.replaceState({}, '', url);
+}
+
+function renderPagination(currentPage, totalPages, contentType, genreId) {
     const prevBtn = document.getElementById('prev-page');
     const nextBtn = document.getElementById('next-page');
     const pageInfo = document.getElementById('page-info');
-
-    if (!pageInfo || !prevBtn || !nextBtn) {
-        console.error('Elementy paginacji nie znalezione!', { pageInfo, prevBtn, nextBtn });
-        return;
-    }
+    if (!pageInfo || !prevBtn || !nextBtn) return;
 
     pageInfo.textContent = `Strona ${currentPage} z ${totalPages}`;
-
     prevBtn.disabled = currentPage === 1;
     nextBtn.disabled = currentPage === totalPages;
-    
-    console.log('Przyciski paginacji - prev disabled:', prevBtn.disabled, 'next disabled:', nextBtn.disabled);
 
-    // Usuń stare event listenery - zastąp przyciski nowymi
     const paginationContainer = prevBtn.parentElement;
     const oldPrevBtn = prevBtn;
     const oldNextBtn = nextBtn;
-    
-    // Stwórz nowe przyciski
     const newPrevBtn = document.createElement('button');
     newPrevBtn.id = 'prev-page';
     newPrevBtn.className = 'btn-pagination';
     newPrevBtn.textContent = '← Poprzednia';
     newPrevBtn.disabled = currentPage === 1;
-    
     const newNextBtn = document.createElement('button');
     newNextBtn.id = 'next-page';
     newNextBtn.className = 'btn-pagination';
     newNextBtn.textContent = 'Następna →';
     newNextBtn.disabled = currentPage === totalPages;
-    
-    // Zastąp stare przyciski nowymi
     paginationContainer.replaceChild(newPrevBtn, oldPrevBtn);
     paginationContainer.replaceChild(newNextBtn, oldNextBtn);
 
-    // Określ ścieżkę - jeśli jesteśmy w folderze pages, użyj względnej ścieżki
-    const currentPath = window.location.pathname;
-    const basePath = currentPath.includes('/pages/') ? './' : 'pages/';
-    const moviesPath = `${basePath}movies.html`;
-    
-    console.log('Ścieżka paginacji:', moviesPath);
-
-    // Dodaj event listenery do nowych przycisków
     newPrevBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Kliknięto "Poprzednia"');
         if (currentPage > 1) {
             const newPage = currentPage - 1;
-            console.log('Przechodzenie do strony:', newPage);
-            // Zapisz nastrój i stronę w localStorage
-            localStorage.setItem('selectedMood', mood);
-            localStorage.setItem('currentPage', newPage.toString());
-            const newUrl = `${moviesPath}?mood=${encodeURIComponent(mood)}&page=${newPage}`;
-            console.log('Nowy URL:', newUrl);
-            window.location.href = newUrl;
-        } else {
-            console.log('Jesteś już na pierwszej stronie');
+            updateMoviesPageUrl(contentType, genreId, newPage);
+            loadMovies();
         }
     });
-
     newNextBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Kliknięto "Następna"');
         if (currentPage < totalPages) {
             const newPage = currentPage + 1;
-            console.log('Przechodzenie do strony:', newPage);
-            // Zapisz nastrój i stronę w localStorage
-            localStorage.setItem('selectedMood', mood);
-            localStorage.setItem('currentPage', newPage.toString());
-            const newUrl = `${moviesPath}?mood=${encodeURIComponent(mood)}&page=${newPage}`;
-            console.log('Nowy URL:', newUrl);
-            window.location.href = newUrl;
-        } else {
-            console.log('Jesteś już na ostatniej stronie');
+            updateMoviesPageUrl(contentType, genreId, newPage);
+            loadMovies();
         }
     });
-    
-    console.log('Event listenery paginacji dodane do nowych przycisków');
 }
 
 async function handleAddFavorite(movieId, title, posterPath, overview, rating, button) {
