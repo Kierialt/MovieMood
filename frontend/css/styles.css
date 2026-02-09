@@ -90,7 +90,7 @@ nav {
     text-decoration: none;
     color: var(--text-secondary);
     font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     transition: color var(--transition);
     padding: 0.5rem 0;
 }
