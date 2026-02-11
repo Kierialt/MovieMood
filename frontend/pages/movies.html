@@ -38,6 +38,15 @@
         </section>
     </main>
 
+    <!-- Modal szczegółów filmu/serialu -->
+    <div id="movie-detail-modal" class="movie-detail-modal" aria-hidden="true">
+        <div class="movie-detail-overlay" id="movie-detail-overlay"></div>
+        <div class="movie-detail-dialog" id="movie-detail-dialog" role="dialog" aria-labelledby="movie-detail-title" aria-modal="true">
+            <div id="movie-detail-loading" class="movie-detail-loading" style="display: none;">Ładowanie szczegółów...</div>
+            <div id="movie-detail-content" class="movie-detail-content" style="display: none;"></div>
+        </div>
+    </div>
+
     <footer>
         <p>&copy; 2026 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
     </footer>

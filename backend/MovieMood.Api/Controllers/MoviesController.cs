@@ -59,4 +59,24 @@ public class MoviesController : ControllerBase
             totalResults = response.TotalResults
         });
     }
+
+    /// <summary>
+    /// Pobiera szczegóły filmu lub serialu (dla modala "Więcej szczegółów").
+    /// type = movie | tv (animation traktowane jako movie).
+    /// </summary>
+    [HttpGet("{id}/details")]
+    public async Task<ActionResult<MovieDetailResponse>> GetDetails(
+        string id,
+        [FromQuery] string type = "movie")
+    {
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv")
+            typeNorm = "movie";
+
+        var details = await _tmdbService.GetDetailsAsync(typeNorm, id);
+        if (details == null)
+            return NotFound("Nie znaleziono szczegółów dla podanego ID.");
+
+        return Ok(details);
+    }
 }

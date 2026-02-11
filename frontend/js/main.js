@@ -469,7 +469,7 @@ async function loadMovies() {
 
         if (data.results && data.results.length > 0) {
             if (moviesGrid) moviesGrid.style.display = 'grid';
-            renderMovies(data.results, moviesGrid, false);
+            renderMovies(data.results, moviesGrid, false, type);
             moviesScrollState.page = data.page || 1;
             moviesScrollState.totalPages = data.totalPages || 1;
             moviesScrollState.hasMore = moviesScrollState.page < moviesScrollState.totalPages;
@@ -519,7 +519,7 @@ async function loadMoreMovies() {
     try {
         const data = await apiRequest(`/movies?type=${encodeURIComponent(type)}&genre=${genreId}&page=${nextPage}`);
         if (data.results && data.results.length > 0 && moviesGrid) {
-            renderMovies(data.results, moviesGrid, true);
+            renderMovies(data.results, moviesGrid, true, type);
         }
         moviesScrollState.page = data.page || nextPage;
         moviesScrollState.totalPages = data.totalPages || totalPages;
@@ -532,23 +532,26 @@ async function loadMoreMovies() {
     }
 }
 
-function renderMovies(movies, container, append = false) {
+function renderMovies(movies, container, append = false, contentType = 'movie') {
     if (!container) return;
     if (!append) container.innerHTML = '';
 
-    movies.forEach((movie, index) => {
-        // Obsługa zarówno camelCase jak i PascalCase (C# może zwracać różne formaty)
+    // Dla API szczegółów: animation to w TMDB nadal "movie"
+    const apiType = (contentType === 'tv') ? 'tv' : 'movie';
+
+    movies.forEach((movie) => {
         const movieId = movie.movieId || movie.MovieId || '';
         const title = movie.title || movie.Title || 'Bez tytułu';
         const overview = movie.overview || movie.Overview || '';
         const posterPath = movie.posterPath || movie.PosterPath || '';
         const rating = movie.rating || movie.Rating || 0;
-        
+        const escapedTitle = title.replace(/"/g, '&quot;');
+
         const movieCard = document.createElement('article');
         movieCard.className = 'movie-card';
         movieCard.innerHTML = `
             ${posterPath 
-                ? `<img src="https://image.tmdb.org/t/p/w500${posterPath}" alt="${title}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
+                ? `<img src="https://image.tmdb.org/t/p/w500${posterPath}" alt="${escapedTitle}" class="movie-poster" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">`
                 : ''
             }
             <div class="movie-poster-placeholder" style="display: ${posterPath ? 'none' : 'flex'}">
@@ -562,8 +565,11 @@ function renderMovies(movies, container, append = false) {
                     <span>${rating ? rating.toFixed(1) : 'N/A'}</span>
                 </div>
                 <div class="movie-actions">
-                    <button class="btn-favorite" data-movie-id="${movieId}" data-title="${title}" data-poster="${posterPath || ''}" data-overview="${overview || ''}" data-rating="${rating || 0}">
+                    <button class="btn-favorite" data-movie-id="${movieId}" data-title="${escapedTitle}" data-poster="${posterPath || ''}" data-overview="${overview || ''}" data-rating="${rating || 0}">
                         <span>❤️</span> Dodaj do ulubionych
+                    </button>
+                    <button class="btn-details" data-movie-id="${movieId}" data-content-type="${apiType}">
+                        Więcej szczegółów
                     </button>
                 </div>
             </div>
@@ -572,8 +578,124 @@ function renderMovies(movies, container, append = false) {
         const favoriteBtn = movieCard.querySelector('.btn-favorite');
         favoriteBtn.addEventListener('click', () => handleAddFavorite(movieId, title, posterPath, overview, rating, favoriteBtn));
 
+        const detailsBtn = movieCard.querySelector('.btn-details');
+        detailsBtn.addEventListener('click', () => openMovieDetailModal(movieId, apiType));
+
         container.appendChild(movieCard);
     });
+}
+
+// ---- Modal szczegółów filmu/serialu ----
+let movieDetailModalState = { open: false, escapeHandler: null };
+
+function openMovieDetailModal(movieId, contentType) {
+    const modal = document.getElementById('movie-detail-modal');
+    const loadingEl = document.getElementById('movie-detail-loading');
+    const contentEl = document.getElementById('movie-detail-content');
+    const overlay = document.getElementById('movie-detail-overlay');
+    if (!modal || !loadingEl || !contentEl) return;
+
+    movieDetailModalState.open = true;
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    contentEl.innerHTML = '';
+
+    overlay.onclick = closeMovieDetailModal;
+    const escapeHandler = (e) => { if (e.key === 'Escape') closeMovieDetailModal(); };
+    movieDetailModalState.escapeHandler = escapeHandler;
+    document.addEventListener('keydown', escapeHandler);
+
+    fetchMovieDetails(movieId, contentType)
+        .then((details) => {
+            loadingEl.style.display = 'none';
+            if (details) {
+                contentEl.innerHTML = renderMovieDetailContent(details);
+                contentEl.style.display = 'block';
+                const closeBtn = contentEl.querySelector('.movie-detail-close');
+                const goBtn = contentEl.querySelector('.movie-detail-go');
+                if (closeBtn) closeBtn.addEventListener('click', closeMovieDetailModal);
+                if (goBtn) goBtn.addEventListener('click', (e) => { e.preventDefault(); });
+            } else {
+                contentEl.innerHTML = '<p class="movie-detail-error">Nie udało się załadować szczegółów.</p>';
+                contentEl.style.display = 'block';
+            }
+        })
+        .catch(() => {
+            loadingEl.style.display = 'none';
+            contentEl.innerHTML = '<p class="movie-detail-error">Błąd podczas ładowania szczegółów.</p>';
+            contentEl.style.display = 'block';
+        });
+}
+
+function closeMovieDetailModal() {
+    const modal = document.getElementById('movie-detail-modal');
+    if (!modal) return;
+    movieDetailModalState.open = false;
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    const overlay = document.getElementById('movie-detail-overlay');
+    if (overlay) overlay.onclick = null;
+    if (movieDetailModalState.escapeHandler) {
+        document.removeEventListener('keydown', movieDetailModalState.escapeHandler);
+        movieDetailModalState.escapeHandler = null;
+    }
+}
+
+async function fetchMovieDetails(movieId, contentType) {
+    const type = (contentType === 'tv') ? 'tv' : 'movie';
+    const data = await apiRequest(`/movies/${encodeURIComponent(movieId)}/details?type=${encodeURIComponent(type)}`);
+    return data;
+}
+
+function escapeHtml(s) {
+    if (typeof s !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+
+function renderMovieDetailContent(d) {
+    const title = escapeHtml(d.title || d.Title || 'Bez tytułu');
+    const overview = escapeHtml(d.overview || d.Overview || '');
+    const posterPath = (d.posterPath || d.PosterPath || '').replace(/[<>"']/g, '');
+    const voteAverage = d.voteAverage ?? d.VoteAverage ?? 0;
+    const releaseYear = escapeHtml(d.releaseYear || d.ReleaseYear || '');
+    const runtime = d.runtimeMinutes ?? d.RuntimeMinutes;
+    const certification = escapeHtml(d.certification || d.Certification || '');
+    const genres = (d.genres || d.Genres || []).map((g) => (typeof g === 'string' ? g : '')).filter(Boolean).map(escapeHtml).join(', ');
+    const homepage = (d.homepage || d.Homepage || '').replace(/[<>"']/g, '');
+    const spokenLanguages = (d.spokenLanguages || d.SpokenLanguages || []).map(escapeHtml).join(', ');
+
+    const posterHtml = posterPath
+        ? `<img src="https://image.tmdb.org/t/p/w500${posterPath}" alt="${title}" class="movie-detail-poster">`
+        : '<div class="movie-detail-poster movie-detail-poster-placeholder">🎬</div>';
+
+    const metaParts = [];
+    if (certification) metaParts.push(`<span class="cert">${certification}</span>`);
+    if (releaseYear) metaParts.push(`<span>Rok: ${releaseYear}</span>`);
+    if (runtime) metaParts.push(`<span>Czas: ${runtime} min</span>`);
+    metaParts.push(`<span>⭐ ${(typeof voteAverage === 'number' ? voteAverage : 0).toFixed(1)}</span>`);
+
+    const safeHomepage = homepage && /^https?:\/\//i.test(homepage) ? homepage.replace(/"/g, '&quot;') : '';
+    const actionsHtml = safeHomepage
+        ? `<a href="${safeHomepage}" target="_blank" rel="noopener" class="btn btn-primary movie-detail-go">Strona filmu</a><button type="button" class="btn btn-secondary movie-detail-close">Zamknij</button>`
+        : `<button type="button" class="btn btn-secondary movie-detail-close" style="flex: 1;">Zamknij</button>`;
+
+    return `
+        <div class="movie-detail-layout">
+            <div class="movie-detail-poster-wrap">${posterHtml}</div>
+            <div class="movie-detail-body">
+                <h2 id="movie-detail-title" class="movie-detail-title">${title}</h2>
+                <div class="movie-detail-meta">${metaParts.join(' · ')}</div>
+                ${overview ? `<div class="movie-detail-overview">${overview}</div>` : ''}
+                ${genres ? `<div class="movie-detail-genres"><strong>Gatunki:</strong> ${genres}</div>` : ''}
+                ${spokenLanguages ? `<div class="movie-detail-languages"><strong>Języki:</strong> ${spokenLanguages}</div>` : ''}
+                <div class="movie-detail-actions">${actionsHtml}</div>
+            </div>
+        </div>
+    `;
 }
 
 async function handleAddFavorite(movieId, title, posterPath, overview, rating, button) {
