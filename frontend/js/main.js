@@ -639,7 +639,7 @@ function bindMovieDetailModalButtons(contentEl) {
     const closeBtn = contentEl.querySelector('.movie-detail-close');
     const goBtn = contentEl.querySelector('.movie-detail-go');
     if (closeBtn) closeBtn.addEventListener('click', closeMovieDetailModal);
-    if (goBtn) goBtn.addEventListener('click', (e) => { e.preventDefault(); });
+    if (goBtn) goBtn.addEventListener('click', () => { closeMovieDetailModal(); });
 }
 
 function loadMovieDetailExtraSections(movieId, contentType) {
