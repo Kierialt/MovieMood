@@ -79,4 +79,44 @@ public class MoviesController : ControllerBase
 
         return Ok(details);
     }
+
+    [HttpGet("{id}/credits")]
+    public async Task<ActionResult<MovieCreditsResponse>> GetCredits(string id, [FromQuery] string type = "movie")
+    {
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var credits = await _tmdbService.GetCreditsAsync(typeNorm, id);
+        if (credits == null) return NotFound();
+        return Ok(credits);
+    }
+
+    [HttpGet("{id}/videos")]
+    public async Task<ActionResult<MovieVideosResponse>> GetVideos(string id, [FromQuery] string type = "movie")
+    {
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var videos = await _tmdbService.GetVideosAsync(typeNorm, id);
+        if (videos == null) return NotFound();
+        return Ok(videos);
+    }
+
+    [HttpGet("{id}/images")]
+    public async Task<ActionResult<MovieImagesResponse>> GetImages(string id, [FromQuery] string type = "movie")
+    {
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var images = await _tmdbService.GetImagesAsync(typeNorm, id);
+        if (images == null) return NotFound();
+        return Ok(images);
+    }
+
+    [HttpGet("{id}/recommendations")]
+    public async Task<ActionResult<MovieRecommendationsResponse>> GetRecommendations(string id, [FromQuery] string type = "movie")
+    {
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var recs = await _tmdbService.GetRecommendationsAsync(typeNorm, id);
+        if (recs == null) return NotFound();
+        return Ok(recs);
+    }
 }

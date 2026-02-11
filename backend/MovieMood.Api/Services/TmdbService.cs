@@ -147,6 +147,7 @@ public class TmdbService : ITmdbService
             var languages = movie.SpokenLanguages?.Select(l => l.Name ?? l.Iso6391 ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList() ?? new List<string>();
             var year = !string.IsNullOrEmpty(movie.ReleaseDate) && movie.ReleaseDate.Length >= 4
                 ? movie.ReleaseDate[..4] : null;
+            var countries = movie.ProductionCountries?.Select(c => c.Name ?? c.Iso31661 ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList() ?? new List<string>();
 
             return new MovieDetailResponse(
                 MovieId: movieId,
@@ -159,7 +160,12 @@ public class TmdbService : ITmdbService
                 Certification: certification,
                 Genres: genres,
                 Homepage: string.IsNullOrWhiteSpace(movie.Homepage) ? null : movie.Homepage,
-                SpokenLanguages: languages
+                SpokenLanguages: languages,
+                ReleaseDate: movie.ReleaseDate,
+                VoteCount: movie.VoteCount > 0 ? movie.VoteCount : null,
+                Budget: movie.Budget > 0 ? movie.Budget : null,
+                Revenue: movie.Revenue > 0 ? movie.Revenue : null,
+                ProductionCountries: countries
             );
         }
         catch (HttpRequestException ex)
@@ -220,7 +226,8 @@ public class TmdbService : ITmdbService
         var languages = tv.SpokenLanguages?.Select(l => l.Name ?? l.Iso6391 ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList() ?? new List<string>();
         var year = !string.IsNullOrEmpty(tv.FirstAirDate) && tv.FirstAirDate.Length >= 4
             ? tv.FirstAirDate[..4] : null;
-        var runtime = tv.EpisodeRunTime?.FirstOrDefault(); // typowo długość odcinka w min
+        var runtime = tv.EpisodeRunTime?.FirstOrDefault();
+        var countries = tv.ProductionCountries?.Select(c => c.Name ?? c.Iso31661 ?? "").Where(x => !string.IsNullOrEmpty(x)).ToList() ?? new List<string>();
 
         return new MovieDetailResponse(
             MovieId: id.ToString(),
@@ -233,7 +240,138 @@ public class TmdbService : ITmdbService
             Certification: rating,
             Genres: genres,
             Homepage: string.IsNullOrWhiteSpace(tv.Homepage) ? null : tv.Homepage,
-            SpokenLanguages: languages
+            SpokenLanguages: languages,
+            ReleaseDate: tv.FirstAirDate,
+            VoteCount: tv.VoteCount > 0 ? tv.VoteCount : null,
+            Budget: null,
+            Revenue: null,
+            ProductionCountries: countries
         );
+    }
+
+    public async Task<MovieCreditsResponse?> GetCreditsAsync(string type, string movieId)
+    {
+        if (string.IsNullOrWhiteSpace(movieId) || !int.TryParse(movieId, out var id))
+            return null;
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var (authSegment, isAccessToken) = GetAuth();
+        var resource = typeNorm == "tv" ? "tv" : "movie";
+        try
+        {
+            var url = $"{_options.BaseUrl}/{resource}/{id}/credits{authSegment}";
+            var req = NewRequest(url, isAccessToken);
+            var res = await _httpClient.SendAsync(req);
+            res.EnsureSuccessStatusCode();
+            var json = await res.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<TmdbCreditsResponse>(json, _jsonOptions);
+            if (data == null) return null;
+            var director = data.Crew?.FirstOrDefault(c => string.Equals(c.Job, "Director", StringComparison.OrdinalIgnoreCase))?.Name;
+            var cast = (data.Cast ?? new List<TmdbCastItem>())
+                .OrderBy(c => c.Order)
+                .Take(5)
+                .Select(c => new MovieCastItem(
+                    c.Name ?? "",
+                    c.Character,
+                    c.ProfilePath
+                ))
+                .ToList();
+            return new MovieCreditsResponse(director, cast);
+        }
+        catch { return null; }
+    }
+
+    public async Task<MovieVideosResponse?> GetVideosAsync(string type, string movieId)
+    {
+        if (string.IsNullOrWhiteSpace(movieId) || !int.TryParse(movieId, out var id))
+            return null;
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var (authSegment, isAccessToken) = GetAuth();
+        var resource = typeNorm == "tv" ? "tv" : "movie";
+        try
+        {
+            var url = $"{_options.BaseUrl}/{resource}/{id}/videos{authSegment}";
+            var req = NewRequest(url, isAccessToken);
+            var res = await _httpClient.SendAsync(req);
+            res.EnsureSuccessStatusCode();
+            var json = await res.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<TmdbVideosResponse>(json, _jsonOptions);
+            var list = (data?.Results ?? new List<TmdbVideoItem>())
+                .Where(v => string.Equals(v.Site, "YouTube", StringComparison.OrdinalIgnoreCase) &&
+                            (string.Equals(v.Type, "Trailer", StringComparison.OrdinalIgnoreCase) || string.Equals(v.Type, "Teaser", StringComparison.OrdinalIgnoreCase)))
+                .Take(5)
+                .Select(v => new MovieVideoItem(v.Key ?? "", v.Site ?? "YouTube", v.Type ?? "Trailer"))
+                .ToList();
+            return new MovieVideosResponse(list);
+        }
+        catch { return null; }
+    }
+
+    public async Task<MovieImagesResponse?> GetImagesAsync(string type, string movieId)
+    {
+        if (string.IsNullOrWhiteSpace(movieId) || !int.TryParse(movieId, out var id))
+            return null;
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var (authSegment, isAccessToken) = GetAuth();
+        var resource = typeNorm == "tv" ? "tv" : "movie";
+        try
+        {
+            var url = $"{_options.BaseUrl}/{resource}/{id}/images{authSegment}";
+            var req = NewRequest(url, isAccessToken);
+            var res = await _httpClient.SendAsync(req);
+            res.EnsureSuccessStatusCode();
+            var json = await res.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<TmdbImagesResponse>(json, _jsonOptions);
+            var list = (data?.Backdrops ?? new List<TmdbBackdropItem>())
+                .OrderByDescending(b => b.VoteAverage)
+                .Take(12)
+                .Select(b => new MovieImageItem(b.FilePath ?? "", b.VoteAverage > 0 ? b.VoteAverage : null))
+                .ToList();
+            return new MovieImagesResponse(list);
+        }
+        catch { return null; }
+    }
+
+    public async Task<MovieRecommendationsResponse?> GetRecommendationsAsync(string type, string movieId)
+    {
+        if (string.IsNullOrWhiteSpace(movieId) || !int.TryParse(movieId, out var id))
+            return null;
+        var typeNorm = (type ?? "movie").Trim().ToLowerInvariant();
+        if (typeNorm != "movie" && typeNorm != "tv") typeNorm = "movie";
+        var (authSegment, isAccessToken) = GetAuth();
+        var resource = typeNorm == "tv" ? "tv" : "movie";
+        try
+        {
+            var url = $"{_options.BaseUrl}/{resource}/{id}/recommendations{authSegment}";
+            var req = NewRequest(url, isAccessToken);
+            var res = await _httpClient.SendAsync(req);
+            res.EnsureSuccessStatusCode();
+            var json = await res.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<TmdbRecommendationsResponse>(json, _jsonOptions);
+            var list = (data?.Results ?? new List<TmdbRecommendationItem>())
+                .Take(12)
+                .Select(r => new MovieRecommendationItem(r.Id, r.Title, r.Name, r.PosterPath, r.VoteAverage))
+                .ToList();
+            return new MovieRecommendationsResponse(list);
+        }
+        catch { return null; }
+    }
+
+    private (string authSegment, bool isAccessToken) GetAuth()
+    {
+        var isAccessToken = !string.IsNullOrEmpty(_options.ApiKey) &&
+                           _options.ApiKey.StartsWith("eyJ", StringComparison.OrdinalIgnoreCase);
+        var authParam = isAccessToken ? "access_token" : "api_key";
+        return ($"?{authParam}={_options.ApiKey}", isAccessToken);
+    }
+
+    private HttpRequestMessage NewRequest(string url, bool isAccessToken)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        if (isAccessToken)
+            req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey);
+        return req;
     }
 }

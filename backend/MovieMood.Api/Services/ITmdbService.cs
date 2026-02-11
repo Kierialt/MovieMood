@@ -14,4 +14,9 @@ public interface ITmdbService
     /// type = "movie" | "tv"; dla "animation" używamy type = "movie".
     /// </summary>
     Task<MovieDetailResponse?> GetDetailsAsync(string type, string movieId);
+
+    Task<MovieCreditsResponse?> GetCreditsAsync(string type, string movieId);
+    Task<MovieVideosResponse?> GetVideosAsync(string type, string movieId);
+    Task<MovieImagesResponse?> GetImagesAsync(string type, string movieId);
+    Task<MovieRecommendationsResponse?> GetRecommendationsAsync(string type, string movieId);
 }
