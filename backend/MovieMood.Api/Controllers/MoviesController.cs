@@ -26,7 +26,7 @@ public class MoviesController : ControllerBase
         [FromQuery] int page = 1)
     {
         if (string.IsNullOrWhiteSpace(type))
-            return BadRequest("Parametr 'type' jest wymagany. Dostępne wartości: movie, tv");
+            return BadRequest("Parametr 'type' jest wymagany. Dostępne wartości: movie, tv, animation");
 
         if (!GenreConfig.IsValidContentType(type))
             return BadRequest("Nieprawidłowy typ. Dostępne wartości: movie, tv");

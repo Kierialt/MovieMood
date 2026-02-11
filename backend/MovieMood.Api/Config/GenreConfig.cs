@@ -54,7 +54,10 @@ public static class GenreConfig
         { 37, "Western" }
     };
 
-    public static readonly IReadOnlyList<string> ContentTypes = new[] { "movie", "tv" };
+    public static readonly IReadOnlyList<string> ContentTypes = new[] { "movie", "tv", "animation" };
+
+    /// <summary>ID gatunku Animation w TMDB (używane w discover/movie dla typu animation).</summary>
+    public const int AnimationGenreId = 16;
 
     public static bool IsValidContentType(string? type) =>
         !string.IsNullOrWhiteSpace(type) && ContentTypes.Contains(type.Trim(), StringComparer.OrdinalIgnoreCase);
@@ -66,6 +69,7 @@ public static class GenreConfig
         {
             "movie" => MovieGenres.ContainsKey(genreId),
             "tv" => TvGenres.ContainsKey(genreId),
+            "animation" => MovieGenres.ContainsKey(genreId),
             _ => false
         };
     }
@@ -77,6 +81,7 @@ public static class GenreConfig
         {
             "movie" => MovieGenres.GetValueOrDefault(genreId),
             "tv" => TvGenres.GetValueOrDefault(genreId),
+            "animation" => MovieGenres.GetValueOrDefault(genreId),
             _ => null
         };
     }

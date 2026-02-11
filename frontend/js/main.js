@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 e.stopPropagation();
                 const type = (card.dataset.type || 'movie').toLowerCase();
-                if (type === 'tv' || type === 'movie') {
+                if (type === 'tv' || type === 'movie' || type === 'animation') {
                     localStorage.setItem('contentType', type);
                     localStorage.removeItem('contentGenre');
                     localStorage.removeItem('moviesPage');
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (genreGrid && typeof getGenres === 'function') {
         const urlParams = new URLSearchParams(window.location.search);
         let contentType = (urlParams.get('type') || localStorage.getItem('contentType') || 'movie').toLowerCase();
-        if (contentType !== 'movie' && contentType !== 'tv') contentType = 'movie';
+        if (contentType !== 'movie' && contentType !== 'tv' && contentType !== 'animation') contentType = 'movie';
         if (!urlParams.get('type')) {
             const genresPath = window.location.pathname.replace(/[^/]+$/, '') + 'genres.html';
             window.history.replaceState({}, '', `${genresPath}?type=${contentType}`);
@@ -213,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('change-genre-btn')?.addEventListener('click', () => {
             const urlParams = new URLSearchParams(window.location.search);
             let type = (urlParams.get('type') || localStorage.getItem('contentType') || 'movie').toLowerCase();
-            if (type !== 'movie' && type !== 'tv') type = 'movie';
+            if (type !== 'movie' && type !== 'tv' && type !== 'animation') type = 'movie';
             // Strona movies jest zawsze w folderze pages/ — przechodzimy do genres w tym samym folderze
             const pathname = window.location.pathname;
             const href = (pathname.includes('/pages/') || pathname.endsWith('movies.html'))
@@ -395,6 +395,11 @@ function moviesCountLabel(count, type) {
         if (count >= 2 && count <= 4) return 'seriale';
         return 'seriali';
     }
+    if (type === 'animation') {
+        if (count === 1) return 'animacja';
+        if (count >= 2 && count <= 4) return 'animacje';
+        return 'animacji';
+    }
     if (count === 1) return 'film';
     if (count >= 2 && count <= 4) return 'filmy';
     return 'filmów';
@@ -412,14 +417,15 @@ function updateMoviesCount(type, totalResults) {
 async function loadMovies() {
     const urlParams = new URLSearchParams(window.location.search);
     let type = (urlParams.get('type') || localStorage.getItem('contentType') || 'movie').toLowerCase();
-    if (type !== 'movie' && type !== 'tv') type = 'movie';
+    if (type !== 'movie' && type !== 'tv' && type !== 'animation') type = 'movie';
     let genreFromUrl = urlParams.get('genre');
     const genreFromStorage = localStorage.getItem('contentGenre');
     if (!genreFromUrl && genreFromStorage) genreFromUrl = genreFromStorage;
     let genreId = genreFromUrl ? parseInt(genreFromUrl, 10) : null;
     const genres = typeof getGenres === 'function' ? getGenres(type) : [];
-    if (genreId == null || !genres.some(g => g.id === genreId)) {
-        genreId = genres.length ? genres[0].id : 28;
+    const defaultGenreId = type === 'animation' ? 16 : (genres.length ? genres[0].id : 28);
+    if (genreId == null || !Number.isInteger(genreId) || !genres.some(g => g.id === genreId)) {
+        genreId = defaultGenreId;
     }
     localStorage.setItem('contentType', type);
     localStorage.setItem('contentGenre', String(genreId));
@@ -437,7 +443,7 @@ async function loadMovies() {
     const genreBadgeEl = document.getElementById('genre-badge');
 
     if (loadingEl) {
-        loadingEl.textContent = type === 'tv' ? 'Ładowanie seriali...' : 'Ładowanie filmów...';
+        loadingEl.textContent = type === 'tv' ? 'Ładowanie seriali...' : type === 'animation' ? 'Ładowanie animacji...' : 'Ładowanie filmów...';
         loadingEl.style.display = 'block';
     }
     if (errorEl) errorEl.style.display = 'none';
@@ -450,7 +456,7 @@ async function loadMovies() {
     moviesScrollState = { page: 1, totalPages: 1, type, genreId, loading: true, hasMore: false, scrollListenerAttached: moviesScrollState.scrollListenerAttached };
 
     const genreName = typeof getGenreName === 'function' ? getGenreName(type, genreId) : String(genreId);
-    if (contentTitleEl) contentTitleEl.textContent = type === 'tv' ? 'Seriały' : 'Filmy';
+    if (contentTitleEl) contentTitleEl.textContent = type === 'tv' ? 'Seriały' : type === 'animation' ? 'Animacja' : 'Filmy';
     if (genreBadgeEl) genreBadgeEl.textContent = genreName;
 
     const countEl = document.getElementById('movies-count');

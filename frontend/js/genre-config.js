@@ -44,9 +44,12 @@ const TV_GENRES = [
 { id: 37, name: 'Western', description: 'Seriale inspirowane Dzikim Zachodem i jego surowym klimatem.', emoji: '🤠' }
 ];
 
-/** Zwraca listę gatunków dla danego typu: "movie" | "tv". */
+/** Zwraca listę gatunków dla danego typu: "movie" | "tv" | "animation". */
 function getGenres(contentType) {
-    return (contentType || '').toLowerCase() === 'tv' ? TV_GENRES : MOVIE_GENRES;
+    const t = (contentType || '').toLowerCase();
+    if (t === 'tv') return TV_GENRES;
+    if (t === 'animation') return MOVIE_GENRES;
+    return MOVIE_GENRES;
 }
 
 /** Zwraca nazwę gatunku po ID i typie. */
@@ -58,5 +61,8 @@ function getGenreName(contentType, genreId) {
 
 /** Zwraca poprawną nazwę typu do wyświetlenia. */
 function getContentTypeLabel(contentType) {
-    return (contentType || '').toLowerCase() === 'tv' ? 'TV Shows' : 'Movies';
+    const t = (contentType || '').toLowerCase();
+    if (t === 'tv') return 'TV Show';
+    if (t === 'animation') return 'Animation';
+    return 'Movie';
 }
