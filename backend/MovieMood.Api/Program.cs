@@ -92,6 +92,24 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// Przygotowanie katalogu bazy (np. /data na Render z Persistent Disk)
+var connectionString = app.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrWhiteSpace(connectionString) && connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase))
+{
+    var match = System.Text.RegularExpressions.Regex.Match(connectionString, @"Data Source=(.+)");
+    if (match.Success)
+    {
+        var dataSource = match.Groups[1].Value.Trim();
+        var path = dataSource.Split(';')[0].Trim();
+        if (path.StartsWith('/') && !path.Contains("*"))
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+        }
+    }
+}
+
 // Swagger pipeline
 if (app.Environment.IsDevelopment())
 {

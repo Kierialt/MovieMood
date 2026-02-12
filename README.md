@@ -113,7 +113,7 @@ Jeśli uruchamiasz frontend na innym porcie lub hoście, sprawdź w backendzie l
 Backend może serwować frontend z folderu **`backend/MovieMood.Api/wwwroot`** (kopia zawartości `frontend/`). Jedna aplikacja = API pod `/api/*` + pliki statyczne z wwwroot.
 
 - **Lokalnie (jedna aplikacja):** `cd backend/MovieMood.Api && dotnet run` → strona: **http://localhost:5272**
-- **Render (Web Service):** instrukcja krok po kroku → **[DEPLOY_RENDER.md](DEPLOY_RENDER.md)** (Build Command, Start Command, zmienne `Jwt__Key`, `Tmdb__ApiKey`).
+- **Render (Web Service, Docker):** Render nie ma natywnego środowiska .NET, więc wdrożenie odbywa się przez **Docker**. Instrukcja krok po kroku (Dockerfile, Environment Variables, Persistent Disk): **[DEPLOY_RENDER.md](DEPLOY_RENDER.md)**.
 
 ---
 
