@@ -4,6 +4,8 @@
  */
 
 import { apiRequest, isAuthenticated } from '../core.js';
+import { createFavoriteButton } from '../components/FavoriteButton.js';
+import { setFavoriteMovieIds } from '../services/favorites-service.js';
 
 let moviesScrollState = {
     page: 1,
@@ -162,43 +164,6 @@ async function onDetailsClick(movieId, apiType) {
     openMovieDetailModal(movieId, apiType);
 }
 
-async function handleAddFavorite(movieId, title, posterPath, overview, rating, button) {
-    if (!isAuthenticated()) {
-        alert('Musisz być zalogowany, aby dodać film do ulubionych.');
-        const authPath = window.location.pathname.includes('pages') ? 'auth.html' : 'pages/auth.html';
-        window.location.href = authPath;
-        return;
-    }
-
-    button.disabled = true;
-    button.textContent = 'Dodawanie...';
-
-    try {
-        await apiRequest('/favorites', {
-            method: 'POST',
-            body: JSON.stringify({
-                movieId,
-                title,
-                posterPath: posterPath || '',
-                overview: overview || '',
-                rating: rating || 0
-            })
-        });
-
-        button.classList.add('favorited');
-        button.innerHTML = '<span>✓</span> Dodano do ulubionych';
-    } catch (error) {
-        if (error.message.includes('już w ulubionych') || error.message.includes('already')) {
-            button.classList.add('favorited');
-            button.innerHTML = '<span>✓</span> Już w ulubionych';
-        } else {
-            alert('Błąd podczas dodawania do ulubionych: ' + error.message);
-            button.disabled = false;
-            button.innerHTML = '<span>❤️</span> Dodaj do ulubionych';
-        }
-    }
-}
-
 function renderMovies(movies, container, append = false, contentType = 'movie') {
     if (!container) return;
     if (!append) container.innerHTML = '';
@@ -231,9 +196,7 @@ function renderMovies(movies, container, append = false, contentType = 'movie') 
                     <span>${rating ? rating.toFixed(1) : 'N/A'}</span>
                 </div>
                 <div class="movie-actions">
-                    <button class="btn-favorite" data-movie-id="${movieId}" data-title="${escapedTitle}" data-poster="${posterPath || ''}" data-overview="${overview || ''}" data-rating="${rating || 0}">
-                        <span>❤️</span> Dodaj do ulubionych
-                    </button>
+                    <div class="movie-favorite-slot"></div>
                     <button class="btn-details" data-movie-id="${movieId}" data-content-type="${apiType}">
                         Więcej szczegółów
                     </button>
@@ -241,8 +204,18 @@ function renderMovies(movies, container, append = false, contentType = 'movie') 
             </div>
         `;
 
-        const favoriteBtn = movieCard.querySelector('.btn-favorite');
-        favoriteBtn.addEventListener('click', () => handleAddFavorite(movieId, title, posterPath, overview, rating, favoriteBtn));
+        const favoriteSlot = movieCard.querySelector('.movie-favorite-slot');
+        if (favoriteSlot) {
+            const favoriteBtn = createFavoriteButton({
+                movieId,
+                title,
+                posterPath: posterPath || '',
+                overview: overview || '',
+                rating: rating || 0,
+                className: 'btn-favorite'
+            });
+            favoriteSlot.appendChild(favoriteBtn);
+        }
 
         const detailsBtn = movieCard.querySelector('.btn-details');
         detailsBtn.addEventListener('click', () => onDetailsClick(movieId, apiType));
@@ -251,7 +224,13 @@ function renderMovies(movies, container, append = false, contentType = 'movie') 
     });
 }
 
-export function init() {
+export async function init() {
+    if (isAuthenticated()) {
+        try {
+            const list = await apiRequest('/favorites');
+            setFavoriteMovieIds((list || []).map((f) => f.movieId ?? f.MovieId).filter(Boolean));
+        } catch (_) {}
+    }
     loadMovies();
     document.getElementById('change-genre-btn')?.addEventListener('click', () => {
         const urlParams = new URLSearchParams(window.location.search);

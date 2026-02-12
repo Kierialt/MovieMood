@@ -4,6 +4,7 @@
  */
 
 import { apiRequest } from '../core.js';
+import { createFavoriteButton } from '../components/FavoriteButton.js';
 
 function escapeHtml(s) {
     if (typeof s !== 'string') return '';
@@ -82,11 +83,6 @@ function renderMovieDetailContent(d) {
     if (budget != null && budget > 0) extraRows.push(`<div class="movie-detail-row"><strong>Budżet:</strong> ${escapeHtml(formatMoney(budget))}</div>`);
     if (revenue != null && revenue > 0) extraRows.push(`<div class="movie-detail-row"><strong>Przychody:</strong> ${escapeHtml(formatMoney(revenue))}</div>`);
 
-    const safeHomepage = homepage && /^https?:\/\//i.test(homepage) ? homepage.replace(/"/g, '&quot;') : '';
-    const actionsHtml = safeHomepage
-        ? `<a href="${safeHomepage}" target="_blank" rel="noopener" class="btn btn-primary movie-detail-go">Strona filmu</a><button type="button" class="btn btn-secondary movie-detail-close">Zamknij</button>`
-        : `<button type="button" class="btn btn-secondary movie-detail-close" style="flex: 1;">Zamknij</button>`;
-
     return `
         <div class="movie-detail-layout">
             <div class="movie-detail-poster-wrap">${posterHtml}</div>
@@ -97,7 +93,7 @@ function renderMovieDetailContent(d) {
                 ${overview ? `<div class="movie-detail-overview">${overview}</div>` : ''}
                 ${genres ? `<div class="movie-detail-genres"><strong>Gatunki:</strong> ${genres}</div>` : ''}
                 ${spokenLanguages ? `<div class="movie-detail-languages"><strong>Języki:</strong> ${spokenLanguages}</div>` : ''}
-                <div class="movie-detail-actions">${actionsHtml}</div>
+                <div class="movie-detail-actions"></div>
                 <section class="movie-detail-block" aria-label="Obsada i ekipa">
                     <h3 class="movie-detail-block-title">🎬 Reżyseria i obsada</h3>
                     <div id="movie-detail-credits" class="movie-detail-placeholder">Ładowanie…</div>
@@ -166,14 +162,16 @@ function renderSimilarSection(data, type) {
     const apiType = (type === 'tv') ? 'tv' : 'movie';
     const html = items.map((r) => {
         const id = r.id ?? r.Id;
-        const title = escapeHtml(r.title || r.Title || r.name || r.Name || 'Bez tytułu');
+        const rawTitle = r.title || r.Title || r.name || r.Name || 'Bez tytułu';
+        const title = escapeHtml(rawTitle);
+        const titleAttr = String(rawTitle).replace(/"/g, '&quot;');
         const posterPath = (r.posterPath || r.PosterPath || '').replace(/[<>"']/g, '');
         const rating = r.voteAverage ?? r.VoteAverage ?? 0;
         const posterSrc = posterPath ? `https://image.tmdb.org/t/p/w154${posterPath}` : '';
         const posterHtml = posterPath
             ? `<img src="${posterSrc}" alt="${title}" loading="lazy">`
             : '<span class="movie-detail-similar-placeholder">🎬</span>';
-        return `<article class="movie-detail-similar-card" data-movie-id="${id}" data-content-type="${apiType}">${posterHtml}<span class="movie-detail-similar-title">${title}</span><span class="movie-detail-similar-rating">⭐ ${rating.toFixed(1)}</span></article>`;
+        return `<article class="movie-detail-similar-card" data-movie-id="${id}" data-content-type="${apiType}" data-title="${titleAttr}" data-poster="${posterPath}" data-rating="${rating}">${posterHtml}<span class="movie-detail-similar-title">${title}</span><span class="movie-detail-similar-rating">⭐ ${rating.toFixed(1)}</span><div class="movie-detail-similar-favorite"></div></article>`;
     }).join('');
     return `<div class="movie-detail-similar">${html}</div>`;
 }
@@ -181,7 +179,8 @@ function renderSimilarSection(data, type) {
 function bindSimilarCardsClick(container) {
     if (!container) return;
     container.querySelectorAll('.movie-detail-similar-card').forEach((card) => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.movie-detail-similar-favorite')) return;
             const id = card.getAttribute('data-movie-id');
             const contentType = card.getAttribute('data-content-type');
             if (id && contentType) {
@@ -189,6 +188,28 @@ function bindSimilarCardsClick(container) {
                 openMovieDetailModal(id, contentType);
             }
         });
+    });
+}
+
+function bindSimilarCardsFavoriteButtons(container) {
+    if (!container) return;
+    container.querySelectorAll('.movie-detail-similar-card').forEach((card) => {
+        const slot = card.querySelector('.movie-detail-similar-favorite');
+        if (!slot) return;
+        const movieId = card.getAttribute('data-movie-id');
+        const title = card.getAttribute('data-title') || card.querySelector('.movie-detail-similar-title')?.textContent || '';
+        const posterPath = card.getAttribute('data-poster') || '';
+        const rating = parseFloat(card.getAttribute('data-rating') || '0', 10) || 0;
+        const btn = createFavoriteButton({
+            movieId,
+            title: title.replace(/&quot;/g, '"'),
+            posterPath,
+            overview: '',
+            rating,
+            className: 'btn-favorite btn-favorite-compact'
+        });
+        btn.addEventListener('click', (e) => e.stopPropagation());
+        slot.appendChild(btn);
     });
 }
 
@@ -215,7 +236,10 @@ function loadMovieDetailExtraSections(movieId, contentType) {
                 if (!el) return;
                 if (outcome.status === 'fulfilled' && outcome.value) {
                     el.innerHTML = outcome.value.render(outcome.value.data);
-                    if (sections[i].key === 'recommendations') bindSimilarCardsClick(el);
+                    if (sections[i].key === 'recommendations') {
+                        bindSimilarCardsClick(el);
+                        bindSimilarCardsFavoriteButtons(el);
+                    }
                 } else {
                     el.innerHTML = '<p class="movie-detail-muted">Brak danych.</p>';
                 }
@@ -249,6 +273,36 @@ export function openMovieDetailModal(movieId, contentType) {
             loadingEl.style.display = 'none';
             if (details) {
                 contentEl.innerHTML = renderMovieDetailContent(details);
+                const actionsDiv = contentEl.querySelector('.movie-detail-actions');
+                if (actionsDiv) {
+                    const closeBtn = document.createElement('button');
+                    closeBtn.type = 'button';
+                    closeBtn.className = 'btn btn-secondary movie-detail-close';
+                    closeBtn.textContent = 'Zamknij';
+                    actionsDiv.appendChild(closeBtn);
+
+                    const favoriteBtn = createFavoriteButton({
+                        movieId,
+                        title: details.title || details.Title || 'Bez tytułu',
+                        posterPath: details.posterPath || details.PosterPath || '',
+                        overview: details.overview || details.Overview || '',
+                        rating: details.voteAverage ?? details.VoteAverage ?? 0,
+                        className: 'btn btn-favorite'
+                    });
+                    actionsDiv.appendChild(favoriteBtn);
+
+                    const homepage = (details.homepage || details.Homepage || '').replace(/[<>"']/g, '');
+                    const safeHomepage = homepage && /^https?:\/\//i.test(homepage) ? homepage.replace(/"/g, '&quot;') : '';
+                    if (safeHomepage) {
+                        const goLink = document.createElement('a');
+                        goLink.href = safeHomepage;
+                        goLink.target = '_blank';
+                        goLink.rel = 'noopener';
+                        goLink.className = 'btn btn-primary movie-detail-go';
+                        goLink.textContent = 'Strona filmu';
+                        actionsDiv.appendChild(goLink);
+                    }
+                }
                 contentEl.style.display = 'block';
                 bindMovieDetailModalButtons(contentEl);
                 loadMovieDetailExtraSections(movieId, contentType);

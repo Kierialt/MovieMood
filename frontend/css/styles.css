@@ -661,11 +661,16 @@ body.page-genres .genre-card-content p {
     margin-top: auto;
 }
 
+.movie-actions .movie-favorite-slot,
 .movie-actions .btn-favorite,
 .movie-actions .btn-details {
     flex: 1;
     min-width: 0;
     width: 50%;
+}
+
+.movie-actions .movie-favorite-slot {
+    display: flex;
 }
 
 .btn-favorite,
@@ -712,6 +717,12 @@ body.page-genres .genre-card-content p {
 .btn-favorite:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.btn-favorite.favorited:disabled {
+    opacity: 1;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* Infinite scroll – ładowanie kolejnych */
@@ -1085,6 +1096,18 @@ body.page-genres .genre-card-content p {
     font-size: 0.7rem;
     color: var(--text-muted);
     padding: 0 0.5rem 0.5rem;
+}
+
+.movie-detail-similar-favorite {
+    padding: 0 0.5rem 0.5rem;
+    margin-top: auto;
+}
+
+.movie-detail-similar-card .btn-favorite-compact {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+    min-height: 0;
 }
 
 /* Auth */

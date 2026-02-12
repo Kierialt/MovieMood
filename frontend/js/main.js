@@ -5,7 +5,9 @@
  * dopiero po kliknięciu „Więcej szczegółów” (w pages/movies.js).
  */
 
-import { updateAuthLink } from './core.js';
+import './sw-registration.js';
+import { updateAuthLink, isAuthenticated, apiRequest } from './core.js';
+import { setFavoriteMovieIds } from './services/favorites-service.js';
 
 function isMoviesPage(pathname) {
     return pathname.includes('movies.html') || pathname.includes('/pages/movies') || pathname.endsWith('/movies');
@@ -21,6 +23,11 @@ function isAuthPage(pathname) {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateAuthLink();
+    if (isAuthenticated()) {
+        apiRequest('/favorites')
+            .then((list) => setFavoriteMovieIds((list || []).map((f) => f.movieId ?? f.MovieId).filter(Boolean)))
+            .catch(() => {});
+    }
 
     // Strona główna: klik w typ kontekstu → strona gatunków
     const contentTypeGrid = document.getElementById('content-type-grid');

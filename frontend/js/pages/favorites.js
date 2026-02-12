@@ -3,6 +3,7 @@
  */
 
 import { apiRequest, isAuthenticated } from '../core.js';
+import { setFavoriteMovieIds } from '../services/favorites-service.js';
 
 async function loadFavorites() {
     const authRequired = document.getElementById('auth-required');
@@ -31,6 +32,7 @@ async function loadFavorites() {
         if (loadingEl) loadingEl.style.display = 'none';
 
         if (favorites && Array.isArray(favorites) && favorites.length > 0) {
+            setFavoriteMovieIds(favorites.map((f) => f.movieId ?? f.MovieId ?? f.id).filter(Boolean));
             renderFavorites(favorites, favoritesGrid);
         } else {
             if (emptyState) emptyState.style.display = 'block';
