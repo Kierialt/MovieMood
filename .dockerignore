@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Build outputs (nie potrzebne w kontekście – budujemy w kontenerze)
+**/bin
+**/obj
+**/out
+
+# Lokalna baza SQLite (w produkcji używamy env / Persistent Disk)
+*.db
+*.db-shm
+*.db-wal
+
+# Frontend w repo (aplikacja używa wwwroot z backend/MovieMood.Api)
+frontend/node_modules
+
+# IDE (nie wpływają na build)
+.cursor
+.vs
+
+# Testy, narzędzia
+**/*.Tests
+**/node_modules
