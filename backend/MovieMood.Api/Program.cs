@@ -19,12 +19,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<TmdbOptions>(builder.Configuration.GetSection(TmdbOptions.SectionName));
 
-// Auth
+// Auth – Jwt:Key z appsettings lub zmiennej środowiskowej Jwt__Key
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 
 if (string.IsNullOrWhiteSpace(jwt.Key))
 {
-    throw new InvalidOperationException("JWT Key nie może być pusty. Ustaw Jwt:Key w appsettings.json lub appsettings.Development.json");
+    throw new InvalidOperationException(
+        "JWT Key nie może być pusty. Ustaw Jwt:Key w appsettings (lub appsettings.Development.json) albo zmienną środowiskową Jwt__Key.");
 }
 
 var keyBytes = Encoding.UTF8.GetBytes(jwt.Key);
@@ -51,21 +52,31 @@ builder.Services.AddScoped<ITokenService, JwtTokenService>();
 // TMDB Service
 builder.Services.AddHttpClient<ITmdbService, TmdbService>();
 
-// CORS
+// CORS – dev origins + opcjonalny origin z konfiguracji (np. Render: CORS__Origins lub RENDER_EXTERNAL_URL)
+var corsOrigins = new List<string>
+{
+    "http://192.168.100.228:3000",
+    "http://172.20.10.2:3000",
+    "http://172.20.10.7:3000",
+    "http://10.201.32.192:3000",
+    "http://192.168.0.136:3000",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://localhost:5272"
+};
+var extraOrigin = builder.Configuration["Cors:Origins"] ?? builder.Configuration["RENDER_EXTERNAL_URL"];
+if (!string.IsNullOrWhiteSpace(extraOrigin))
+{
+    foreach (var origin in extraOrigin.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        corsOrigins.Add(origin.TrimEnd('/'));
+}
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                "http://192.168.100.228:3000",
-                "http://172.20.10.2:3000",
-                "http://172.20.10.7:3000",
-                "http://10.201.32.192:3000",
-                "http://192.168.0.136:3000",
-                "http://localhost:3000",
-                "http://localhost:8080",
-                "http://127.0.0.1:5500",
-                "http://localhost:5500")
+        policy.WithOrigins(corsOrigins.ToArray())
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -92,9 +103,15 @@ app.UseCors();
 
 app.UseHttpsRedirection();
 
+// Statyczne pliki frontendu (wwwroot) – HTML, CSS, JS, obrazy itd.
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Fallback: żądania niezgodne z API ani z plikiem statycznym (np. "/") → index.html.
+app.MapFallbackToFile("index.html");
 
 app.Run();

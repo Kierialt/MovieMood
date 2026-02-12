@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#5c6b7a">
+    <title>Movie Mood Picker - Ulubione</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="page-favorites">
+    <header>
+        <nav>
+            <div class="logo">
+                <h1>🎬 Movie Mood Picker</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="../index.html">Strona Główna</a></li>
+                <li><a href="movies.html">Filmy</a></li>
+                <li><a href="favorites.html" class="active">Ulubione</a></li>
+                <li><a href="auth.html" id="auth-link">Zaloguj się</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="favorites-header">
+            <h2>Twoje ulubione filmy</h2>
+        </section>
+
+        <section class="favorites-container">
+            <div id="auth-required" class="auth-required" style="display: none;">
+                <p>Musisz być zalogowany, aby zobaczyć swoje ulubione filmy.</p>
+                <a href="auth.html" class="btn-primary">Zaloguj się</a>
+            </div>
+            <div id="loading" class="loading">Ładowanie ulubionych...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="favorites-grid" class="movies-grid"></div>
+            <div id="empty-favorites" class="empty-state" style="display: none;">
+                <p>Nie masz jeszcze żadnych ulubionych filmów.</p>
+                <a href="movies.html" class="btn-primary">Przeglądaj filmy</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="../js/genre-config.js"></script>
+    <script type="module" src="../js/main.js"></script>
+</body>
+</html>

@@ -108,7 +108,17 @@ Jeśli uruchamiasz frontend na innym porcie lub hoście, sprawdź w backendzie l
 
 ---
 
+## Deploy (jedna aplikacja: backend + frontend)
+
+Backend może serwować frontend z folderu **`backend/MovieMood.Api/wwwroot`** (kopia zawartości `frontend/`). Jedna aplikacja = API pod `/api/*` + pliki statyczne z wwwroot.
+
+- **Lokalnie (jedna aplikacja):** `cd backend/MovieMood.Api && dotnet run` → strona: **http://localhost:5272**
+- **Render (Web Service):** instrukcja krok po kroku → **[DEPLOY_RENDER.md](DEPLOY_RENDER.md)** (Build Command, Start Command, zmienne `Jwt__Key`, `Tmdb__ApiKey`).
+
+---
+
 ## Struktura projektu
 
 - **`backend/MovieMood.Api`** – API ASP.NET Core (auth JWT, filmy, ulubione, SQLite)
-- **`frontend/`** – strona główna, strony Filmy/Ulubione/Logowanie, CSS, JS (moduły), PWA (manifest, service worker)
+- **`backend/MovieMood.Api/wwwroot`** – kopia frontendu do deployu „jedna aplikacja” (statyczne pliki serwowane przez API)
+- **`frontend/`** – oryginalny frontend do developmentu (Live Server, Python, npx serve)

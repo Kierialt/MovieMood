@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#5c6b7a">
+    <title>Movie Mood Picker - Filmy</title>
+    <link rel="manifest" href="../manifest.json">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="page-movies">
+    <header>
+        <nav>
+            <div class="logo">
+                <h1>🎬 Movie Mood Picker</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="../index.html">Strona Główna</a></li>
+                <li><a href="movies.html" class="active">Filmy</a></li>
+                <li><a href="favorites.html">Ulubione</a></li>
+                <li><a href="auth.html" id="auth-link">Zaloguj się</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="movies-header">
+            <h2 id="content-title">Filmy</h2>
+            <p id="movies-count" class="movies-count" style="display: none; margin-top: 0px !important;"></p>
+            <div class="genre-badge" id="genre-badge"></div>
+            <button class="btn-secondary" id="change-genre-btn">Zmień gatunek</button>
+        </section>
+
+        <section class="movies-container">
+            <div id="loading" class="loading">Ładowanie filmów...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="movies-grid" class="movies-grid"></div>
+            <div id="loading-more" class="loading-more" style="display: none;">Ładowanie kolejnych...</div>
+        </section>
+    </main>
+
+    <!-- Modal szczegółów filmu/serialu -->
+    <div id="movie-detail-modal" class="movie-detail-modal" aria-hidden="true">
+        <div class="movie-detail-overlay" id="movie-detail-overlay"></div>
+        <div class="movie-detail-dialog" id="movie-detail-dialog" role="dialog" aria-labelledby="movie-detail-title" aria-modal="true">
+            <div id="movie-detail-loading" class="movie-detail-loading" style="display: none;">Ładowanie szczegółów...</div>
+            <div id="movie-detail-content" class="movie-detail-content" style="display: none;"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Movie Mood Picker. Wszystkie prawa zastrzeżone.</p>
+    </footer>
+
+    <script src="../js/genre-config.js"></script>
+    <script type="module" src="../js/main.js"></script>
+</body>
+</html>
