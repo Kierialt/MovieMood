@@ -54,7 +54,7 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         var token = _tokenService.CreateToken(user);
-        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email, user.Role));
+        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email ?? "", user.Role ?? UserRole.Default));
     }
 
     [HttpPost("login")]
@@ -69,7 +69,7 @@ public class AuthController : ControllerBase
         var keyLower = key.ToLowerInvariant();
 
         var user = await _db.Users.FirstOrDefaultAsync(u =>
-            u.UserName == key || u.Email.ToLower() == keyLower);
+            u.UserName == key || (u.Email != null && u.Email.ToLower() == keyLower));
 
         if (user is null)
         {
@@ -83,7 +83,7 @@ public class AuthController : ControllerBase
         }
 
         var token = _tokenService.CreateToken(user);
-        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email, user.Role));
+        return Ok(new AuthResponse(token, user.Id, user.UserName, user.Email ?? "", user.Role ?? UserRole.Default));
     }
 }
 

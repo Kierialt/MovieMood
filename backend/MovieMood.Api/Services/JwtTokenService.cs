@@ -26,9 +26,9 @@ public class JwtTokenService : ITokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.UniqueName, user.UserName),
-            new(JwtRegisteredClaimNames.Email, user.Email),
-            new(ClaimTypes.Role, user.Role),
+            new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? ""),
+            new(JwtRegisteredClaimNames.Email, user.Email ?? ""),
+            new(ClaimTypes.Role, user.Role ?? "User"),
         };
 
         var token = new JwtSecurityToken(

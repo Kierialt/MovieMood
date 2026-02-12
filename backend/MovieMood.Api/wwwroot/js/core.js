@@ -1,12 +1,10 @@
 /**
  * Core – współdzielona konfiguracja API, auth i helpers.
- * Importowany przez main.js oraz moduły stron i moduły funkcjonalne (np. movie-detail).
- * Gdy frontend jest serwowany z tego samego hosta (np. Render, localhost:5272), używamy względnego /api.
+ * Na deployu (np. Render) front i API są na tej samej domenie – używamy origin. Lokalnie: localhost:5272.
  */
-
-const isDevFrontendOrigin = typeof window !== 'undefined' &&
-    (window.location.port === '3000' || window.location.port === '5500' || window.location.port === '8080');
-export const API_BASE_URL = isDevFrontendOrigin ? 'http://localhost:5272/api' : '/api';
+export const API_BASE_URL = (typeof window !== 'undefined' && window.location?.origin)
+    ? `${window.location.origin}/api`
+    : 'http://localhost:5272/api';
 
 export const getToken = () => localStorage.getItem('token');
 export const setToken = (token) => localStorage.setItem('token', token);

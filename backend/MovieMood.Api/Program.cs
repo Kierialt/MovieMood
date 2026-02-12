@@ -29,6 +29,11 @@ if (string.IsNullOrWhiteSpace(jwt.Key))
 }
 
 var keyBytes = Encoding.UTF8.GetBytes(jwt.Key);
+if (keyBytes.Length < 32)
+{
+    throw new InvalidOperationException(
+        "JWT Key musi mieć co najmniej 32 znaki (256 bitów). Ustaw dłuższy klucz (np. Jwt__Key w zmiennych środowiskowych).");
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -91,6 +96,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Stosowanie migracji przy starcie (baza gotowa na Renderze i lokalnie)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 // Przygotowanie katalogu bazy (np. /data na Render z Persistent Disk)
 var connectionString = app.Configuration.GetConnectionString("DefaultConnection");

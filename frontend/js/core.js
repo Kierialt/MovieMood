@@ -3,7 +3,10 @@
  * Importowany przez main.js oraz moduły stron i moduły funkcjonalne (np. movie-detail).
  */
 
-export const API_BASE_URL = 'http://localhost:5272/api';
+// Na deployu (np. Render) front i API są na tej samej domenie – używamy origin. Lokalnie: localhost:5272.
+export const API_BASE_URL = (typeof window !== 'undefined' && window.location?.origin)
+    ? `${window.location.origin}/api`
+    : 'http://localhost:5272/api';
 
 export const getToken = () => localStorage.getItem('token');
 export const setToken = (token) => localStorage.setItem('token', token);
